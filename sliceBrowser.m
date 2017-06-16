@@ -70,12 +70,14 @@ switch length(varargin)
         handles.image_arr = randn(5,5,5);
 end
 handles.slice = 1;
-
+minVal = 1;
+maxVal = size(handles.image_arr,3);
+range = maxVal-minVal;
 % Update slider values
-set(handles.slider1,'Min',1);
-set(handles.slider1,'Max',size(handles.image_arr,3));
+set(handles.slider1,'Min',minVal);
+set(handles.slider1,'Max',maxVal);
 set(handles.slider1,'Value',handles.slice);
-set(handles.slider1,'SliderStep',[1 1]/(size(handles.image_arr,3)-1));
+set(handles.slider1,'SliderStep',[1 max(floor(floor(0.05*range)/10)*10,1)]/(range));
 guidata(hObject,handles);
 
 % Initialize popup menu
@@ -117,28 +119,6 @@ function varargout = sliceBrowser_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
-% --- Executes on button press in pushbutton1.
-function pushbutton1_Callback(hObject, eventdata, handles)
-% hObject    handle to pushbutton1 (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-axes(handles.axes1);
-cla;
-
-popup_sel_index = get(handles.popupmenu1, 'Value');
-switch popup_sel_index
-    case 1
-        plot(rand(5));
-    case 2
-        plot(sin(1:0.01:25.99));
-    case 3
-        bar(1:.5:10);
-    case 4
-        plot(membrane);
-    case 5
-        surf(peaks);
-end
 
 
 % --------------------------------------------------------------------

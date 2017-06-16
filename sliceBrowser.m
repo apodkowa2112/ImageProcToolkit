@@ -90,6 +90,7 @@ guidata(hObject,handles);
 if strcmp(get(hObject,'Visible'),'off')
 %     plot(rand(5));
     updateImage(hObject,handles);
+    colormap(gray)
 end
 
 function updateImage(hObject,handles)
@@ -101,7 +102,6 @@ if isfield(handles, 'func');
 end
 assert(ismatrix(img),'img not matrix');
 imagesc(img);
-colormap gray
 colorbar
 
 % UIWAIT makes sliceBrowser wait for user response (see UIRESUME)

@@ -62,6 +62,10 @@ switch length(varargin)
     case 1
         % sliceBrowser(arr)
         handles.image_arr = varargin{1};
+    case 2
+        % sliceBrowser(arr,func)
+        handles.image_arr = varargin{1};
+        handles.func = varargin{2};
     otherwise
         handles.image_arr = randn(5,5,5);
 end
@@ -92,6 +96,9 @@ function updateImage(hObject,handles)
 set(handles.slider1,'Value',handles.slice)
 set(handles.popupmenu2,'Value',handles.slice)
 img = squeeze(handles.image_arr(:,:,handles.slice));
+if isfield(handles, 'func');
+    img = handles.func(img);
+end
 assert(ismatrix(img),'img not matrix');
 imagesc(img);
 colormap gray

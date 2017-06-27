@@ -25,6 +25,11 @@ function spect = quickSpectrum2(img,fs,dx,dyn_range)
     xlabel('\nu_x (1/mm)')
     ylabel('Frequency (MHz)')
     grid on
+    
+    %% clear spect if not assigned
+    if nargout==0
+        clear spect
+    end
 end
 
 function out = normZero(in)

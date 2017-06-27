@@ -1,6 +1,8 @@
 function h = robustImagesc( latAxis, axAxis, img, dynRange)
 %ROBUSTIMAGESC imagesc with axis checking support & scaling dynRange
+%function h = robustImagesc( latAxis, axAxis, img, dynRange)
 %   Dependencies: cleanImagesc.m
+
 
 %% Sanity checks
 if ~isequal(size(latAxis(:)),[size(img,2) 1])

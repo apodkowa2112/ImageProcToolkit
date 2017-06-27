@@ -1,5 +1,11 @@
 function varargout = sliceBrowser(varargin)
-% SLICEBROWSER MATLAB code for sliceBrowser.fig
+% SLICEBROWSER Browse 3D array, slice by slice along 3rd dimension
+%      sliceBrowser(arr) Browse the 3D array, sliding dynamic range
+%      sliceBrowser(arr,postProcFunction) Browse the array, processing each 
+%      slice with postProcFunction.
+%           EX. sliceBrowser(arr,@angle) 
+%           EX. filt = ones(3); sliceBrowser(arr,@(x) filter2(filt,x) )
+%
 %      SLICEBROWSER, by itself, creates a new SLICEBROWSER or raises the existing
 %      singleton*.
 %
@@ -19,8 +25,6 @@ function varargout = sliceBrowser(varargin)
 %      instance to run (singleton)".
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
-
-% Edit the above text to modify the response to help sliceBrowser
 
 % Last Modified by GUIDE v2.5 15-Jun-2017 15:51:25
 

@@ -8,6 +8,13 @@ switch length(varargin)
         lineNumber = 1;
         lineDir = 'Vertical';
         renderFunc = @(x) x;
+    case 2
+        % lineBrowser(mat, funcHandle)
+        matData = varargin{1};
+        lineNumber = 1;
+        lineDir = 'Vertical';
+        renderFunc = varargin{2};
+        assert(nargin(renderFunc)==1,'Only one argument to renderFunc supported.');
     otherwise
         error('Error: Unsupported Number of Arguments')
 end
@@ -15,8 +22,9 @@ end
 
 %% Constructors
 % figure
-hMainFigure = figure('Name','lineBrowser','Visible','off',...
-    'Toolbar','figure');
+hMainFigure = figure('Name','lineBrowser',...
+    'Toolbar','figure'...
+    );%,'Visible','off');
 
 % Generate axes
 hImageAxes = subplot(3,1,[1 2]);
@@ -27,12 +35,30 @@ hLineAxes = subplot(3,1,3);
 hLineAxes.Tag = 'hLineAxes';
 grid(hLineAxes,'on');
 
-% Generate pointer for 
+% Generate pointer for mouse click action
 hPointer = zeros(1,2);
 
+
 %% Component initialization
-lineDirButton = uicontrol('Style','pushbutton','String',lineDir,...
-    'ToolTip','Line Direction','Callback',@lineDirButton_callback);
+% hToolPanel
+hToolPanel = uipanel(hMainFigure,'Title','Tools');
+hToolPanel.Units = hImageAxes.Units;
+hToolPanel.Position = [0 0 0.2,sum(hImageAxes.Position([2 4]))-hLineAxes.Position(2)];
+hToolPanel.Units = hLineAxes.Units;
+
+hLineAxes.Position(3) = hLineAxes.Position(3)-1.1*hToolPanel.Position(3);
+hImageAxes.Position(3) = hLineAxes.Position(3);
+
+hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
+    +0.1*hToolPanel.Position(3);
+hToolPanel.Position(2) = hLineAxes.Position(2);
+
+% lineDirButton
+lineDirButton = uicontrol('Style','pushbutton','Parent',hToolPanel,...
+    'String',lineDir,'ToolTip','Line Direction',...
+    'Callback',@lineDirButton_callback...
+    ,'Units','normalized');
+lineDirButton.Position(2) = 0.9;
 
 %% Start GUI
 updatePlots;

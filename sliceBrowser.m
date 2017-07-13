@@ -26,7 +26,7 @@ function varargout = sliceBrowser(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Last Modified by GUIDE v2.5 15-Jun-2017 15:51:25
+% Last Modified by GUIDE v2.5 07-Jul-2017 10:26:04
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -73,10 +73,14 @@ switch length(varargin)
     otherwise
         handles.image_arr = randn(5,5,5);
 end
+if ~isfield(handles,'func')
+    handles.func = @(x) x;
+end
 handles.slice = 1;
 minVal = 1;
 maxVal = size(handles.image_arr,3);
 range = maxVal-minVal;
+
 % Update slider values
 set(handles.slider1,'Min',minVal);
 set(handles.slider1,'Max',maxVal);
@@ -95,19 +99,34 @@ guidata(hObject,handles);
 % so window can get raised using sliceBrowser.
 if strcmp(get(hObject,'Visible'),'off')
 %     plot(rand(5));
+    handles.img = imagesc(...
+        handles.func(handles.image_arr(:,:,handles.slice)));
     updateImage(hObject,handles);
+    caxis auto;
     colormap(gray)
+    
 end
 
 function updateImage(hObject,handles)
+% Update slice values
 set(handles.slider1,'Value',handles.slice)
 set(handles.popupmenu2,'Value',handles.slice)
 img = squeeze(handles.image_arr(:,:,handles.slice));
-if isfield(handles, 'func');
-    img = handles.func(img);
-end
+% if isfield(handles, 'func')
+%     handles.img = handles.func(handles.img);
+% end
 assert(ismatrix(img),'img not matrix');
-imagesc(img);
+
+%% Update plot
+if isequal(handles.axes1.CLimMode,'manual')
+    clim = handles.axes1.CLim;
+end
+% imagesc(img);
+handles.img.CData = handles.func(img);
+guidata(hObject,handles);
+if exist('clim','var')
+    caxis(handles.axes1,clim); caxis manual;
+end
 colorbar
 
 % UIWAIT makes sliceBrowser wait for user response (see UIRESUME)
@@ -238,3 +257,12 @@ function popupmenu2_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes during object creation, after setting all properties.
+function axes1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to axes1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: place code in OpeningFcn to populate axes1

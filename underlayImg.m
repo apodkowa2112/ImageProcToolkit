@@ -1,6 +1,9 @@
 function hAxUnderlay = underlayImg(ax,img,mask,cLim)
+% UNDERLAYIMG Underlay an image in a matlab figure
+% function hAxUnderlay = underlayImg(ax,img,mask,cLim)
+
     %% Turn off axis
-    ax.Visible = 'off'
+    ax.Visible = 'off';
     
     %% Get img handle from axis
     imgHandle = findall(ax,'Type','Image');

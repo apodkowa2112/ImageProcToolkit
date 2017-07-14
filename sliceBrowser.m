@@ -26,7 +26,7 @@ function varargout = sliceBrowser(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Last Modified by GUIDE v2.5 07-Jul-2017 10:26:04
+% Last Modified by GUIDE v2.5 14-Jul-2017 16:01:00
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -81,6 +81,11 @@ minVal = 1;
 maxVal = size(handles.image_arr,3);
 range = maxVal-minVal;
 
+% Set video playback options
+handles.video.fr = 5;
+handles.video.frameskip = 1;
+handles.video.isPlaying = false;
+
 % Update slider values
 set(handles.slider1,'Min',minVal);
 set(handles.slider1,'Max',maxVal);
@@ -107,6 +112,23 @@ if strcmp(get(hObject,'Visible'),'off')
     
 end
 
+function playVideo(hObject,handles)
+while(get(handles.PlayButton,'Value'))
+%     disp(handles.slice)
+    handles.slice = handles.slice+handles.video.frameskip;
+    if handles.slice > size(handles.image_arr,3) 
+        handles.slice = 1;
+    end
+    guidata(hObject,handles);
+    updateImage(hObject,handles);
+    drawnow;
+    pause(1/handles.video.fr)
+%     if ~handles.PlayButton.Value
+%         break;
+%     end
+        
+end
+
 function updateImage(hObject,handles)
 % Update slice values
 set(handles.slider1,'Value',handles.slice)
@@ -118,11 +140,11 @@ img = squeeze(handles.image_arr(:,:,handles.slice));
 assert(ismatrix(img),'img not matrix');
 
 %% Update plot
-if isequal(handles.axes1.CLimMode,'manual')
-    clim = handles.axes1.CLim;
+if isequal(get(handles.axes1,'CLimMode'),'manual')
+    clim = get(handles.axes1,'CLim');
 end
 % imagesc(img);
-handles.img.CData = handles.func(img);
+set(handles.img,'CData',handles.func(img));
 guidata(hObject,handles);
 if exist('clim','var')
     caxis(handles.axes1,clim); caxis manual;
@@ -266,3 +288,22 @@ function axes1_CreateFcn(hObject, eventdata, handles)
 % handles    empty - handles not created until after all CreateFcns called
 
 % Hint: place code in OpeningFcn to populate axes1
+
+
+% --- Executes on button press in PlayButton.
+function PlayButton_Callback(hObject, eventdata, handles)
+% hObject    handle to PlayButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of PlayButton
+handles.video.isPlaying = get(hObject,'Value');
+guidata(hObject,handles);
+if handles.video.isPlaying
+    set(hObject,'String','Pause');
+    guidata(hObject, handles);
+    playVideo(hObject, handles);
+else
+    set(hObject,'String','Play');
+end
+

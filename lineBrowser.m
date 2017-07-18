@@ -107,7 +107,7 @@ hMainFigure.Visible = 'on';
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(yAxis,hPointer(2));
-                line(xData,xAxis(lineNumber)*[1 1]...
+                line(xData,yAxis(lineNumber)*[1 1]...
                     ,'Color','g','LineWidth',3);
                 axes(hLineAxes)
                 plot(xAxis,matData(lineNumber,:));

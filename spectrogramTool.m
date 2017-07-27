@@ -83,8 +83,8 @@ yLine = line([1 size(matData,2)],(spectCoord(2))*[1 1]...
 axes(hSpectAxes);
 sg = normZero(mag2db(abs(spectrogram(...
     squeeze(matData(spectCoord(2),spectCoord(1),:))...
-    ,spect.segLength,spect.noverlap,spect.nfft,'yaxis'))));
-hSpectrogram = imagesc(sg); caxis([-40 0]);
+    ,spect.segLength,spect.noverlap,spect.nfft,'yaxis','centered'))));
+hSpectrogram = imagesc([1 size(sg,2)], [-1 1], sg); caxis([-40 0]);
 axis('xy');
 colormap gray;
 tLine = line(slice*[1 1],get(hSpectrogram,'YData'),'Color','g','LineWidth',3);
@@ -142,7 +142,7 @@ set(hMainFigure,'Visible','on');
 
         sg = normZero(mag2db(abs(spectrogram(...
             squeeze(matData(spectCoord(2),spectCoord(1),:))...
-            ,spect.segLength,spect.noverlap,spect.nfft,'yaxis'))));
+            ,spect.segLength,spect.noverlap,spect.nfft,'yaxis','centered'))));
         set(hSpectrogram,'CData',sg);
         ylabel(hSpectAxes,'Freq.')
         xlabel(hSpectAxes,'Time.')

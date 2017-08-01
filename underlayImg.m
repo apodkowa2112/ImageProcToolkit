@@ -1,4 +1,4 @@
-function hAxUnderlay = underlayImg(ax,img,mask,cLim)
+function [hAxUnderlay,hImg] = underlayImg(ax,img,mask,cLim)
 % UNDERLAYIMG Underlay an image in a matlab figure
 % function hAxUnderlay = underlayImg(ax,img,mask,cLim)
 
@@ -16,7 +16,7 @@ function hAxUnderlay = underlayImg(ax,img,mask,cLim)
     hAxUnderlay = axes();
     
     %% Render figure
-    imagesc(imgHandle.XData,imgHandle.YData,img,'Parent',hAxUnderlay)
+    hImg = imagesc(imgHandle.XData,imgHandle.YData,img,'Parent',hAxUnderlay);
     caxis(cLim);
     colormap(hAxUnderlay,gray);
     

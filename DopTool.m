@@ -142,7 +142,6 @@ function iq = getFilteredIQ(hObject,handles)
         iq = handles.data.filtIQ;
     end
 
-
 function bMode = getFilteredBmode(hObject,handles)
     if ~isfield(handles.data,'frameNum')
         handles.data.frameNum = 1;
@@ -159,10 +158,23 @@ function bMode = getFilteredBmode(hObject,handles)
     end
     bMode = iq2bMode( iq  );
     
-
-function frameRate = getFrameRate(hObject,handles)
-        frameRate = 1/diff(handles.data.timeAxis(1:2));
+function frameRate = getFrameRate(handles)
+    frameRate = 1/diff(handles.data.timeAxis(1:2));
         
+function maxVel = getMaxVel(handles)
+    if isequal(handles.data.cfd.mode,'lagOneEstPairwise')
+        % For edge case when HRI & lagOneEstPairwise
+        freq = handles.data.AP.PRF1;
+        maxVel = freq2Vel(freq/2,handles.data.freq,handles.data.soundSpeed);
+    elseif isequal(handles.data.cfd.mode,'lagOneEstHRIPairs')
+        % HRI pairs are effectively separated by an LRI interval, so max
+        % velocity is higher
+        freq = handles.data.AP.PRF1;
+        maxVel = freq2Vel(freq/2,handles.data.freq,handles.data.soundSpeed);
+    else
+        maxVel = freq2Vel(getFrameRate(handles)/2,...
+            handles.data.freq,handles.data.soundSpeed);
+    end
 %% Utility functions
 
 function out = normZero(in) 
@@ -181,7 +193,7 @@ function out = findClosest(vec,num)
     out = vec((abs(vec-num)==min(abs(vec-num))));
 
 function ind = closestInd(vec,num)
-    ind = find(abs(vec-num)==min(abs(vec-num)));
+    ind = find(abs(vec-num)==min(abs(vec-num)),1,'first');
 
 function vel = freq2Vel(freq,TxFreq,c)
     % Note: Make sure that freq and TxFreq have same units.
@@ -219,7 +231,7 @@ function updateBmode(hObject,handles)
 function initDoppler(hObject,handles)
     axes(handles.dopplerAxes);
     dop = getDoppler(hObject,handles);
-            
+    handles = guidata(hObject);
     handles.dopplerImg = imagesc(handles.data.latAxis*1e3,...
         handles.data.axAxis*1e3,...
         dop.Data,dop.Range);
@@ -254,9 +266,10 @@ function dop = getDoppler(hObject,handles)
         case 'CFD'
             dop.Data = 1e3*getColorFlow(hObject,handles);
             handles = guidata(hObject);
-            dop.Data = dop.Data(:,:,handles.data.frameNum);
-            dop.Range = 1e3*freq2Vel(getFrameRate(hObject,handles)/2,...
-                handles.data.freq,handles.data.soundSpeed)*[-1 1];
+            frameTime = handles.data.timeAxis(handles.data.frameNum);
+            frameNum = closestInd(handles.data.cfd.timeAxis,frameTime);
+            dop.Data = dop.Data(:,:,frameNum);
+            dop.Range = 1e3*getMaxVel(handles)*[-1 1];
             dop.Title = 'Color Flow';
             dop.ColorbarTitle = 'mm';
             dop.Colormap = dopMap(256);
@@ -269,20 +282,52 @@ function dop = getDoppler(hObject,handles)
 function cfd = getColorFlow(hObject,handles)
     cfd = NaN;
     if ~isfield(handles.data.cfd,'vel')
+        hMsg = msgbox('Computing Color Flow. This can take a long time.  Please wait');
         switch handles.data.cfd.mode
             case 'lagOneEst'
                 iq = getFilteredIQ(hObject,handles);
                 handles = guidata(hObject);
+                
+                if ndims(iq)==4 && isequal(handles.data.compMode,'HRI')
+                    % Occurs when clutterFiltMatchedTx && HRI
+                    iq = squeeze(sum(iq,3));
+                end
                 cfd = lagOneEst(iq(:,:,:),...
                     diff(handles.data.timeAxis(1:2)),...
                     handles.data.freq,...
                     handles.data.cfd.windowLength,...
                     handles.data.soundSpeed);
                 handles.data.cfd.vel = cfd;
+                handles.data.cfd.timeAxis = ...
+                    handles.data.timeAxis(1:size(cfd,3));
+                guidata(hObject,handles);
+            case 'lagOneEstPairwise'
+                iq = getFilteredIQ(hObject,handles);
+                handles = guidata(hObject);
+                cfd = lagOneEstPairwise(iq,...
+                    1/handles.data.AP.PRF1,...
+                    handles.data.freq,...
+                    handles.data.cfd.windowLength,...
+                    handles.data.soundSpeed);
+                handles.data.cfd.vel = cfd;
+                handles.data.cfd.timeAxis = 2*(0:size(cfd,3)-1)/handles.data.AP.PRF1;
+                guidata(hObject,handles);
+            case 'lagOneEstHRIPairs'
+                iq = getFilteredIQ(hObject,handles);
+                handles = guidata(hObject);
+                cfd = lagOneEstHRIPairs(iq,...
+                    1/handles.data.AP.PRF1,...
+                    handles.data.freq,...
+                    handles.data.cfd.windowLength,...
+                    handles.data.soundSpeed);
+                handles.data.cfd.vel = cfd;
+                handles.data.cfd.timeAxis = ...
+                    handles.data.timeAxis(1:size(cfd,3));
                 guidata(hObject,handles);
             otherwise
                 error('Unsupported Doppler Mode: %s',handles.data.cfd.mode);
         end
+        close(hMsg);
     else
         cfd = handles.data.cfd.vel;
     end
@@ -606,6 +651,11 @@ guidata(hObject,handles);
 initSlider(hObject,handles); 
 handles = guidata(hObject);
 
+buildEstimatorMenu(hObject,handles);
+handles = guidata(hObject);
+estimatorMenu_Callback(handles.estimatorMenu,[],handles);
+handles = guidata(hObject);
+
 % Update frame edit box to reflect new value
 set(handles.frameEdit,'value',handles.data.frameNum);
 guidata(hObject,handles);
@@ -635,6 +685,9 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 compModes = cellstr(get(hObject,'String'));
 handles.data.compMode = compModes{1};
+guidata(hObject,handles);
+% buildEstimatorMenu(hObject,handles);
+% handles = guidata(hObject);
 guidata(hObject,handles);
 
 
@@ -702,9 +755,25 @@ function estimatorMenu_Callback(hObject, eventdata, handles)
 %        contents{get(hObject,'Value')} returns selected item from estimatorMenu
 contents = cellstr(get(hObject,'String'));
 value = contents{get(hObject,'Value')};
-switch value
+switch value % Code repeated in case of future slight deviation.
     case 'lagOneEst'
         handles.data.cfd.mode = value;
+        handles.data.cfd = clearField(handles.data.cfd,'vel');
+        guidata(hObject,handles);
+        updateDoppler(hObject,handles);
+        guidata(hObject,guidata(hObject));
+    case 'lagOneEstPairwise'
+        handles.data.cfd.mode = value;
+        handles.data.cfd = clearField(handles.data.cfd,'vel');
+        guidata(hObject,handles);
+        updateDoppler(hObject,handles);
+        guidata(hObject,guidata(hObject));
+    case 'lagOneEstHRIPairs'
+        handles.data.cfd.mode = value;
+        handles.data.cfd = clearField(handles.data.cfd,'vel');
+        guidata(hObject,handles);
+        updateDoppler(hObject,handles);
+        guidata(hObject,guidata(hObject));
     otherwise
         set(hObject,'Value',1);
         error('Unsupported Estimator: %s. Reverting to default.',value);
@@ -725,8 +794,12 @@ end
 
 function buildEstimatorMenu(hObject,handles)
 contents = {'lagOneEst'};
-if handles.data.AP.doubleTx
-    contents = [contents;{'lagOneEstPairwise'}];
+if isfield(handles.data,'AP') && handles.data.AP.doubleTx
+    if handles.data.compMode == 'LRI'
+        contents = [contents;{'lagOneEstPairwise'}];
+    elseif handles.data.compMode == 'HRI'
+        contents = [contents;{'lagOneEstHRIPairs'}];
+    end
 end
 set(handles.estimatorMenu,'String',contents);
 guidata(hObject,handles);

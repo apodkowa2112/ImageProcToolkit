@@ -22,7 +22,7 @@ function varargout = DopTool(varargin)
 
 % Edit the above text to modify the response to help DopTool
 
-% Last Modified by GUIDE v2.5 02-Aug-2017 13:28:18
+% Last Modified by GUIDE v2.5 03-Aug-2017 09:34:19
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -42,6 +42,34 @@ else
     gui_mainfcn(gui_State, varargin{:});
 end
 % End initialization code - DO NOT EDIT
+% --- Executes just before DopTool is made visible.
+
+function DopTool_OpeningFcn(hObject, eventdata, handles, varargin)
+% This function has no output args, see OutputFcn.
+% hObject    handle to figure
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% varargin   command line arguments to DopTool (see VARARGIN)
+
+% Choose default command line output for DopTool
+handles.output = hObject;
+
+%% Load in appropriate paths
+loadPaths;
+
+%% Setup handles
+warning('Hack: numFrames');
+handles.data.numFrames=100;
+
+handles.data.clutterFilt.cutoff = 1000; % [Hz]
+handles.clutterFiltMode = 'clutterFiltSimple';
+
+% Update handles structure
+guidata(hObject, handles);
+
+% UIWAIT makes DopTool wait for user response (see UIRESUME)
+% uiwait(handles.figure1);
+
 
 %% Data Processing functions
 function bMode = getBmode(hObject,handles)
@@ -317,33 +345,6 @@ function handles = refreshDerivedData(hObject,handles)
             
 %% UI Control functions
 
-% --- Executes just before DopTool is made visible.
-function DopTool_OpeningFcn(hObject, eventdata, handles, varargin)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to DopTool (see VARARGIN)
-
-% Choose default command line output for DopTool
-handles.output = hObject;
-
-%% Load in appropriate paths
-loadPaths;
-
-%% Setup handles
-warning('Hack: numFrames');
-handles.data.numFrames=1000;
-
-handles.data.clutterFilt.cutoff = 1000; % [Hz]
-handles.clutterFiltMode = 'clutterFiltSimple';
-
-% Update handles structure
-guidata(hObject, handles);
-
-% UIWAIT makes DopTool wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
-
 
 % --- Outputs from this function are returned to the command line.
 function varargout = DopTool_OutputFcn(hObject, eventdata, handles) 
@@ -439,7 +440,7 @@ function dopModeMenu_Callback(hObject, eventdata, handles)
 
 % Hints: contents = cellstr(get(hObject,'String')) returns dopModeMenu contents as cell array
 %        contents{get(hObject,'Value')} returns selected item from dopModeMenu
-contents = get(hObject,'String');
+contents = cellstr(get(hObject,'String'));
 handles.dopMode = contents{get(hObject,'Value')};
 guidata(hObject,handles);
 % handles = refreshDerivedData(hObject,handles);
@@ -510,6 +511,9 @@ handles.data.cfd.mode = 'lagOneEst';
 handles.data.cfd.windowLength = 31;
 handles.data.freq = handles.data.Trans.frequency*1e6;
 handles.data.soundSpeed = handles.data.Resource.Parameters.speedOfSound;
+
+%% Build estimatorMenu
+buildEstimatorMenu(hObject,handles);
 
 %% Clear redundant data
 guidata(hObject,handles);
@@ -661,7 +665,6 @@ handles = guidata(hObject);
 guidata(hObject,handles);
 
 
-    
 % --- Executes during object creation, after setting all properties.
 function clutterFiltMenu_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to clutterFiltMenu (see GCBO)
@@ -687,3 +690,44 @@ spectrogramTool(iq(:,:,:),...
 
     function out = clip(data,range)
         out = min(max(data,range(1)),range(2));
+
+
+% --- Executes on selection change in estimatorMenu.
+function estimatorMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to estimatorMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns estimatorMenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from estimatorMenu
+contents = cellstr(get(hObject,'String'));
+value = contents{get(hObject,'Value')};
+switch value
+    case 'lagOneEst'
+        handles.data.cfd.mode = value;
+    otherwise
+        set(hObject,'Value',1);
+        error('Unsupported Estimator: %s. Reverting to default.',value);
+end
+
+% --- Executes during object creation, after setting all properties.
+function estimatorMenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to estimatorMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+function buildEstimatorMenu(hObject,handles)
+contents = {'lagOneEst'};
+if handles.data.AP.doubleTx
+    contents = [contents;{'lagOneEstPairwise'}];
+end
+set(handles.estimatorMenu,'String',contents);
+guidata(hObject,handles);
+

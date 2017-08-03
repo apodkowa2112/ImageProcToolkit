@@ -228,8 +228,8 @@ function initDoppler(hObject,handles)
     % Underlay the bmode image
     bMode = getBmode(hObject,handles);
 %     getPowerDoppler(hObject,handles);
-    handles = guidata(hObject);
     pdi = getPowerDoppler(hObject,handles);
+    handles = guidata(hObject);
     mask = pdi>max(pdi(:))*1e-3;
     hUnderlay=underlayImg(handles.dopplerAxes,bMode,...
         mask,[-60 0]);
@@ -244,9 +244,9 @@ function initDoppler(hObject,handles)
 function dop = getDoppler(hObject,handles)
     switch handles.dopMode
         case 'PDI'
-            dop.Data = mag2db(getPowerDoppler(hObject,handles));
+            dop.Data = 10*log10(getPowerDoppler(hObject,handles));
             handles = guidata(hObject);
-            dop.Range = [-60 0] + max(dop.Data(:));
+            dop.Range = [-30 0] + max(dop.Data(:));
             dop.Title = 'Power Doppler';
             dop.ColorbarTitle = 'dB';
             dop.Colormap = hot(256);

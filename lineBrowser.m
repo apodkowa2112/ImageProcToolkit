@@ -27,11 +27,21 @@ hMainFigure = figure('Name','lineBrowser',...
     );%,'Visible','off');
 
 % Generate axes
-hImageAxes = subplot(3,1,[1 2]);
+hUnderlayAxes = subplot(3,1,[1 2]);
+set(hUnderlayAxes,'Tag','hUnderlayAxes');
+green = zeros([size(matData),3]); green(:,:,2) =1;
+hUnderlayImg = image(green);
+
+hImageAxes = axes('Position',get(hUnderlayAxes,'Position'));
+
 hImageAxes.Tag = 'hImageAxes';
 colormap(hImageAxes,gray);
 
-hLineAxes = subplot(3,1,3);
+linkaxes([hImageAxes,hUnderlayAxes]);
+linkprop([hImageAxes,hUnderlayAxes],{'Position'} );
+
+% subplot clobbers axes, so set the position manually
+hLineAxes = axes('Position',[0.13 0.11 0.775 0.2157353]);
 hLineAxes.Tag = 'hLineAxes';
 grid(hLineAxes,'on');
 
@@ -81,11 +91,13 @@ hMainFigure.Visible = 'on';
 %% Utility functions
     function updatePlots
         figure(hMainFigure)
+
         axes(hImageAxes)
         
         hImg = imagesc(renderFunc(matData));
         colorbar
         set(hImg,'ButtonDownFcn',@ImageClickCallback);
+        set(hImageAxes,'Color','none');
         
         % calculate axes
         [xData, yData, cData] = getimage(hImageAxes);
@@ -99,16 +111,18 @@ hMainFigure.Visible = 'on';
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(xAxis,hPointer(1));
-                line(xAxis(lineNumber)*[1 1],yData...
-                    ,'Color','g','LineWidth',3);
+                mask = ones(size(matData)); mask(:,lineNumber)=0;
+                hImg.AlphaData = mask;
                 axes(hLineAxes)
                 plot(yAxis,matData(:,lineNumber));
                 grid on;
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(yAxis,hPointer(2));
-                line(xData,xAxis(lineNumber)*[1 1]...
-                    ,'Color','g','LineWidth',3);
+                mask = ones(size(matData)); mask(lineNumber,:)=0;
+                hImg.AlphaData = mask;
+%                 line(xData,xAxis(lineNumber)*[1 1]...
+%                     ,'Color','g','LineWidth',3);
                 axes(hLineAxes)
                 plot(xAxis,matData(lineNumber,:));
                 grid on;

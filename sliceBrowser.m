@@ -26,7 +26,7 @@ function varargout = sliceBrowser(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Last Modified by GUIDE v2.5 14-Jul-2017 16:01:00
+% Last Modified by GUIDE v2.5 25-Aug-2017 10:56:45
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -306,4 +306,3 @@ if handles.video.isPlaying
 else
     set(hObject,'String','Play');
 end
-

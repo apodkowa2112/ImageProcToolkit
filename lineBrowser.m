@@ -7,17 +7,32 @@ switch length(varargin)
         matData = varargin{1};
         lineNumber = 1;
         lineDir = 'Vertical';
-        renderFunc = @(x) x;
     case 2
         % lineBrowser(mat, funcHandle)
         matData = varargin{1};
         lineNumber = 1;
         lineDir = 'Vertical';
         renderFunc = varargin{2};
-        assert(nargin(renderFunc)==1,'Only one argument to renderFunc supported.');
+    case 3
+        matData = varargin{1};
+        lineNumber = 1;
+        lineDir = 'Vertical';
+        
+        renderFunc = varargin{2};
+        evalFunc = varargin{3};
+        
     otherwise
         error('Error: Unsupported Number of Arguments')
 end
+
+if ~exist('renderFunc','var') || isempty(renderFunc)
+    renderFunc = @(x) x;
+end
+assert(nargin(renderFunc)==1,'Only one argument to renderFunc supported.');
+if ~exist('evalFunc','var') || isempty(evalFunc)
+    evalFunc = @(x) x;
+end
+assert(nargin(evalFunc)==1,'Only one argument to evalFunc supported.');
         
 
 %% Constructors
@@ -114,17 +129,15 @@ hMainFigure.Visible = 'on';
                 mask = ones(size(matData)); mask(:,lineNumber)=0;
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
-                plot(yAxis,matData(:,lineNumber));
+                plot(yAxis,evalFunc(matData(:,lineNumber)));
                 grid on;
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(yAxis,hPointer(2));
                 mask = ones(size(matData)); mask(lineNumber,:)=0;
                 hImg.AlphaData = mask;
-%                 line(xData,xAxis(lineNumber)*[1 1]...
-%                     ,'Color','g','LineWidth',3);
                 axes(hLineAxes)
-                plot(xAxis,matData(lineNumber,:));
+                plot(xAxis,evalFunc(matData(lineNumber,:)));
                 grid on;
             otherwise 
                 error('Error: Invalid lineDir (%s)',lineDir');

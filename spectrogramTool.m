@@ -15,7 +15,7 @@ switch length(varargin)
         error('Error: Unsupported Number of Arguments')
 end
 slice = 1;
-spectCoord = ceil([size(matData,1) size(matData,2)]/2);
+spectCoord = ceil([size(matData,2) size(matData,1)]/2);
 spect.segLength = ceil(size(matData,3)/8);
 spect.noverlap = spect.segLength-1;
 spect.nfft = 2^(nextpow2(spect.segLength)+1);
@@ -81,10 +81,10 @@ yLine = line([1 size(matData,2)],(spectCoord(2))*[1 1]...
 
 
 axes(hSpectAxes);
-sg = mag2db(abs(spectrogram(...
-    squeeze(matData(spectCoord(1),spectCoord(2),:))...
-    ,spect.segLength,spect.noverlap,spect.nfft,'yaxis')));
-hSpectrogram = imagesc(sg);
+sg = normZero(mag2db(abs(spectrogram(...
+    squeeze(matData(spectCoord(2),spectCoord(1),:))...
+    ,spect.segLength,spect.noverlap,spect.nfft,'yaxis','centered'))));
+hSpectrogram = imagesc([1 size(sg,2)], [-1 1], sg); caxis([-40 0]);
 axis('xy');
 colormap gray;
 tLine = line(slice*[1 1],get(hSpectrogram,'YData'),'Color','g','LineWidth',3);
@@ -140,9 +140,9 @@ set(hMainFigure,'Visible','on');
         [~,spectCoord(2)] = findClosest(yAxis,hImagePointer(2));
         set(yLine, 'YData', yAxis(spectCoord(2))*[1 1]);
 
-        sg = mag2db(abs(spectrogram(...
-            squeeze(matData(spectCoord(1),spectCoord(2),:))...
-            ,spect.segLength,spect.noverlap,spect.nfft,'yaxis')));
+        sg = normZero(mag2db(abs(spectrogram(...
+            squeeze(matData(spectCoord(2),spectCoord(1),:))...
+            ,spect.segLength,spect.noverlap,spect.nfft,'yaxis','centered'))));
         set(hSpectrogram,'CData',sg);
         ylabel(hSpectAxes,'Freq.')
         xlabel(hSpectAxes,'Time.')
@@ -168,4 +168,7 @@ set(hMainFigure,'Visible','on');
         assert(length(closestMatch)==1,'Multiple matches found')
     end
 
+    function out = normZero(in)
+        out = in-max(in(:));
+    end
 end

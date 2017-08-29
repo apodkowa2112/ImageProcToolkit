@@ -28,7 +28,7 @@ function hAxUnderlay = underlayImg(ax,img,mask,cLim)
     
     %% Link axes
     linkaxes([ax,hAxUnderlay]);
-    linkprop([ax,hAxUnderlay],{'Position'} )
+    linkprop([ax,hAxUnderlay],{'Position'} );
     
     %% Return
     if nargout== 0

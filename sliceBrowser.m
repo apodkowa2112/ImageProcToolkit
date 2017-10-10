@@ -70,13 +70,23 @@ switch length(varargin)
         % sliceBrowser(arr,func)
         handles.image_arr = varargin{1};
         handles.func = varargin{2};
+    case 3
+        % sliceBrowser(arr,func,cLim)
+        handles.image_arr = varargin{1};
+        handles.func = varargin{2};
+        cLim = varargin{3}; 
     otherwise
         handles.image_arr = randn(5,5,5);
 end
 if ~isfield(handles,'func')
     handles.func = @(x) x;
 end
+
 handles.slice = 1;
+if ~exist('cLim','var')
+    cLim = handles.func(handles.image_arr(:,:,handles.slice));
+    cLim = [min(cLim(:)), max(cLim(:))];
+end
 minVal = 1;
 maxVal = size(handles.image_arr,3);
 range = maxVal-minVal;
@@ -105,10 +115,15 @@ guidata(hObject,handles);
 if strcmp(get(hObject,'Visible'),'off')
 %     plot(rand(5));
     handles.img = imagesc(...
-        handles.func(handles.image_arr(:,:,handles.slice)));
+        handles.func(handles.image_arr(:,:,handles.slice)),cLim);
     updateImage(hObject,handles);
+    set(hObject,'Visible','on');
+    pause(0.001); % Give GUI time to turn on. Increase if misbehaving.
     caxis auto;
     colormap(gray)
+    ylim([1 size(handles.image_arr,1)]);
+    xlim([1 size(handles.image_arr,2)]);
+    caxis(cLim);
     
 end
 

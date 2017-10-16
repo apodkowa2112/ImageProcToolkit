@@ -1,19 +1,23 @@
 function varargout = tensorTool(varargin)
 % tensorTool Browse lines in a 3D matrix
-
+% tensorTool(matData)
+% tensorTool(matData, funcHandle)
+% tensorTool(matData, funcHandle, renderHandle)
 %% Initialization
 switch length(varargin)
     case 1
+        % tensorTool(matData)
         matData = varargin{1};
         lineNumber = 1;
         lineDir = 'Vertical';
     case 2
-        % lineBrowser(mat, funcHandle)
+        % tensorTool(matData, funcHandle)
         matData = varargin{1};
         lineNumber = 1;
         lineDir = 'Vertical';
         renderFunc = varargin{2};
     case 3
+        % tensorTool(matData, funcHandle, renderHandle)
         matData = varargin{1};
         lineNumber = 1;
         lineDir = 'Vertical';        

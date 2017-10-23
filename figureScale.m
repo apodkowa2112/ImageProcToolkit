@@ -7,6 +7,9 @@ left = margin;
 bottom = topPage-margin-height;
 pp = [left bottom width height];
 if fig~=0
+    set(fig,'Units','inches');
+    set(fig,'PaperUnits','inches');
     set(fig,'PaperPosition',pp);
+    set(fig,'Position',pp);
 end
 end

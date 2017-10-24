@@ -23,6 +23,7 @@ numFrames = size(data,ndims(data));
 
 %% Generate figure and loop over frames
 figHandle = figure(figHandle);
+
 for f=1:numFrames
  
     %% plotting kernel

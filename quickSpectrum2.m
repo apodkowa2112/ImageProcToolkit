@@ -12,6 +12,7 @@ function spect = quickSpectrum2(img,fs,dx,dyn_range)
     %% Compute spectrum
     spect = fft2(img,num_fft_ax,num_fft_lat);
     mag_spect = (mag2db(abs(spect)));
+    
     %% Compute axis
     freq_axis = (0:num_fft_ax-1)*fs/num_fft_ax;
     freq_axis = freq_axis-mean(freq_axis);

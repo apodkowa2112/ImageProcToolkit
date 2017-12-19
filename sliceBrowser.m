@@ -121,8 +121,8 @@ if strcmp(get(hObject,'Visible'),'off')
     pause(0.001); % Give GUI time to turn on. Increase if misbehaving.
     caxis auto;
     colormap(gray)
-    ylim([1 size(handles.image_arr,1)]);
-    xlim([1 size(handles.image_arr,2)]);
+    ylim([1 size(handles.image_arr,1)]+0.5*[-1 1] );
+    xlim([1 size(handles.image_arr,2)]+0.5*[-1 1] );
     caxis(cLim);
     
 end

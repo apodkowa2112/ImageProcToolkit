@@ -86,6 +86,9 @@ handles.slice = 1;
 if ~exist('cLim','var')
     cLim = handles.func(handles.image_arr(:,:,handles.slice));
     cLim = [min(cLim(:)), max(cLim(:))];
+    if cLim(1) == cLim(2)
+        cLim(2) = cLim(2)+eps;
+    end
 end
 minVal = 1;
 maxVal = size(handles.image_arr,3);

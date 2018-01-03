@@ -26,7 +26,7 @@ function varargout = sliceBrowser(varargin)
 %
 % See also: GUIDE, GUIDATA, GUIHANDLES
 
-% Last Modified by GUIDE v2.5 25-Aug-2017 10:56:45
+% Last Modified by GUIDE v2.5 03-Jan-2018 13:37:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -126,7 +126,7 @@ if strcmp(get(hObject,'Visible'),'off')
     colormap(gray)
     ylim([1 size(handles.image_arr,1)]+0.5*[-1 1] );
     xlim([1 size(handles.image_arr,2)]+0.5*[-1 1] );
-    caxis(cLim);
+    %caxis(cLim);
     
 end
 
@@ -146,6 +146,47 @@ while(get(handles.PlayButton,'Value'))
 %     end
         
 end
+
+function setCaxis(handles,mode)
+    %% Sets the caxis style
+    switch mode
+        case 'auto range'
+            set(handles.axes1,'CLimMode','auto');
+        case 'manual'
+            set(handles.axes1,'ClimMode','manual');
+        case 'global range'
+            range = get(handles.axes1,'CLim');
+            for k = 1:size(handles.image_arr,3)
+                img = handles.func(handles.image_arr(:,:,k));
+                range(1) = min(range(1),min(img(:)));
+                range(2) = max(range(2),max(img(:)));
+            end
+            if range(1) == range(2)
+                range = range + [0 eps];
+            end
+            caxis(handles.axes1,range);
+        case 'centered global'
+            maxval = 0;
+            for k = 1:size(handles.image_arr,3)
+                img = handles.func(handles.image_arr(:,:,k));
+                maxval = max(max(abs(img(:))),maxval);
+            end
+            range = maxval*[-1 1];
+            if range(1) == range(2)
+                range = eps*[-1 1];
+            end
+            caxis(handles.axes1,range);
+        otherwise
+            mode = 'auto range';
+            warning('Mode Not Supported.  Defaulting to %s', mode);
+            setCaxis(handles,mode);
+            handles = guidata(handles.axes1);
+    end
+    %% Update caxisMenu value
+    val = find(ismember(get(handles.caxisMenu,'String'),mode));
+    set(handles.caxisMenu,'Value',val);
+    guidata(handles.axes1,handles);
+
 
 function updateImage(hObject,handles)
 % Update slice values
@@ -323,4 +364,29 @@ if handles.video.isPlaying
     playVideo(hObject, handles);
 else
     set(hObject,'String','Play');
+end
+
+% --- Executes on selection change in caxisMenu.
+function caxisMenu_Callback(hObject, eventdata, handles)
+% hObject    handle to caxisMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns caxisMenu contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from caxisMenu
+contents = cellstr(get(hObject,'String'));
+mode = contents{get(hObject,'Value')};
+setCaxis(handles,mode);
+
+
+% --- Executes during object creation, after setting all properties.
+function caxisMenu_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to caxisMenu (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
 end

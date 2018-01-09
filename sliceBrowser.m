@@ -74,7 +74,8 @@ switch length(varargin)
         % sliceBrowser(arr,func,cLim)
         handles.image_arr = varargin{1};
         handles.func = varargin{2};
-        cLim = varargin{3}; 
+        cLim = varargin{3};
+        setCaxis(handles,'manual')
     otherwise
         handles.image_arr = randn(5,5,5);
 end
@@ -118,15 +119,18 @@ guidata(hObject,handles);
 if strcmp(get(hObject,'Visible'),'off')
 %     plot(rand(5));
     handles.img = imagesc(...
-        handles.func(handles.image_arr(:,:,handles.slice)),cLim);
+        handles.func(handles.image_arr(:,:,handles.slice)));
     updateImage(hObject,handles);
     set(hObject,'Visible','on');
     pause(0.001); % Give GUI time to turn on. Increase if misbehaving.
-    caxis auto;
+    
     colormap(gray)
     ylim([1 size(handles.image_arr,1)]+0.5*[-1 1] );
     xlim([1 size(handles.image_arr,2)]+0.5*[-1 1] );
-    %caxis(cLim);
+    if isequal(getCaxis(handles),'manual')
+        caxis(cLim);
+    end
+    
     
 end
 
@@ -187,6 +191,9 @@ function setCaxis(handles,mode)
     set(handles.caxisMenu,'Value',val);
     guidata(handles.axes1,handles);
 
+function mode = getCaxis(handles)
+    contents = get(handles.caxisMenu,'String');
+    mode = contents{get(handles.caxisMenu,'Value')};
 
 function updateImage(hObject,handles)
 % Update slice values

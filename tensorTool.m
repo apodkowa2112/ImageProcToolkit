@@ -94,6 +94,18 @@ lineDirButton = uicontrol('Style','pushbutton','Parent',hToolPanel,...
     ,'Units','normalized');
 lineDirButton.Position(2) = 0.9;
 
+% coordTable
+coordTable = uitable(hToolPanel,...
+    'columnName',{'row','col'},...
+    'ColumnEditable',true(1,2),...
+    'ColumnWidth',{35},...
+    'data',hPointer(:)',...
+    'Units','normalized','Position',[0 0.675 1 0.2]...
+    )
+coordTable.Position(4) = coordTable.Extent(4);
+coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
+
+
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
@@ -138,7 +150,9 @@ hMainFigure.Visible = 'on';
         yAxis = yData(1):dy:yData(2);
         assert(isequal(length(xAxis),size(cData,2)),'Error: Bad xAxis length');
         assert(isequal(length(yAxis),size(cData,1)),'Error: Bad yAxis length');
-        
+        [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
+        [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
+        set(coordTable,'data',flipud(hPointer(:))');
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(xAxis,hPointer(1));

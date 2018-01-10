@@ -100,8 +100,9 @@ coordTable = uitable(hToolPanel,...
     'ColumnEditable',true(1,2),...
     'ColumnWidth',{35},...
     'data',hPointer(:)',...
+    'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
-    )
+    );
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
@@ -129,6 +130,16 @@ hMainFigure.Visible = 'on';
         sliceNumber = value;
         updatePlots;
         
+    end
+    
+    function coordTableEditCallback(hObject,callbackdata)
+        % magic from "uitable properties" documentation
+        coordinate = eval(callbackdata.EditData);
+        row = callbackdata.Indices(1);
+        col = callbackdata.Indices(2);
+        hObject.Data(row,col) = coordinate;
+        hPointer = flipud(hObject.Data(:));
+        updatePlots;
     end
 
 %% Utility functions
@@ -175,7 +186,6 @@ hMainFigure.Visible = 'on';
             case 'Normal'
                 [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
                 [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
-                hPointer
                 lineNumber = 0;
                 mask = ones(size(matData(:,:,1))); 
                 mask(:,hPointer(1))=0; mask(hPointer(2),:) = 0;

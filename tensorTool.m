@@ -161,6 +161,7 @@ hMainFigure.Visible = 'on';
             case 'Normal'
                 [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
                 [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
+                hPointer
                 lineNumber = 0;
                 mask = ones(size(matData(:,:,1))); 
                 mask(:,hPointer(1))=0; mask(hPointer(2),:) = 0;

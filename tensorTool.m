@@ -38,6 +38,10 @@ assert(nargin(evalFunc)==1,'Only one argument to evalFunc supported.');
         
 sliceNumber = 1;
 lineData = 0;
+directions = {'Vertical','Horizontal'};
+if isequal(ndims(matData),3)
+    directions = [directions, {'Normal'}];
+end
 
 %% Constructors
 % figure
@@ -69,10 +73,12 @@ hPointer = zeros(1,2);
 
 %% Component initialization
 % hSlider
-hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData,3)...
-    ,'Value',sliceNumber,'callback',@hSliderCallback,...
-    'Units','normalized','Position',[0.13 0.32,0.48,0.044],...
-    'SliderStep',[1/(size(matData,3)-1), max(0.1,1/(size(matData,3)-1))]);
+if length(directions)==3
+    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData,3)...
+        ,'Value',sliceNumber,'callback',@hSliderCallback,...
+        'Units','normalized','Position',[0.13 0.32,0.48,0.044],...
+        'SliderStep',[1/(size(matData,3)-1), max(0.1,1/(size(matData,3)-1))]);
+end
 
 % hToolPanel
 hToolPanel = uipanel(hMainFigure,'Title','Tools');
@@ -209,8 +215,7 @@ hMainFigure.Visible = 'on';
         hLineAxes.Tag =  'hLineAxes';
     end
 
-    function toggleDirection
-        directions = {'Vertical','Horizontal','Normal'};
+    function toggleDirection        
         if any(ismember(directions,lineDir))
             val = mod(find(ismember(directions,lineDir)),length(directions))+1;
             lineDir = directions{val};

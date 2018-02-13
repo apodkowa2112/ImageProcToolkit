@@ -112,6 +112,12 @@ coordTable = uitable(hToolPanel,...
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
+% hImg
+axes(hImageAxes)      
+hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
+colorbar
+set(hImg,'ButtonDownFcn',@ImageClickCallback);
+set(hImageAxes,'Color','none');
 
 %% Start GUI
 updatePlots;
@@ -153,11 +159,12 @@ hMainFigure.Visible = 'on';
         figure(hMainFigure)
         
         %% Render image
-        axes(hImageAxes)      
-        hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
-        colorbar
-        set(hImg,'ButtonDownFcn',@ImageClickCallback);
-        set(hImageAxes,'Color','none');
+%         axes(hImageAxes)      
+%         hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
+%         colorbar
+%         set(hImg,'ButtonDownFcn',@ImageClickCallback);
+%         set(hImageAxes,'Color','none');
+        set(hImg,'CData',renderFunc(matData(:,:,sliceNumber)));
         
         %% calculate axes
         [xData, yData, cData] = getimage(hImageAxes);

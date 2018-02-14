@@ -102,10 +102,11 @@ lineDirButton.Position(2) = 0.9;
 
 % coordTable
 coordTable = uitable(hToolPanel,...
-    'columnName',{'row','col'},...
-    'ColumnEditable',true(1,2),...
+    'columnName',{'row','col','slice'},...
+    'rowName',[],...
+    'ColumnEditable',true(1,3),...
     'ColumnWidth',{35},...
-    'data',hPointer(:)',...
+    'data',[hPointer(:)' 1],...
     'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
     );
@@ -149,8 +150,13 @@ hMainFigure.Visible = 'on';
         coordinate = eval(callbackdata.EditData);
         row = callbackdata.Indices(1);
         col = callbackdata.Indices(2);
-        hObject.Data(row,col) = coordinate;
-        hPointer = flipud(hObject.Data(:));
+        if col==3
+            sliceNumber = min(max(1,round(coordinate)),size(matData,3));
+            set(hSlider,'Value',sliceNumber);
+        else
+            hObject.Data(row,col) = coordinate;
+        end
+        hPointer = flipud(hObject.Data(1:2)');
         updatePlots;
     end
 
@@ -176,7 +182,7 @@ hMainFigure.Visible = 'on';
         assert(isequal(length(yAxis),size(cData,1)),'Error: Bad yAxis length');
         [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
         [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
-        set(coordTable,'data',flipud(hPointer(:))');
+        set(coordTable,'data',[flipud(hPointer(:))' sliceNumber]);
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(xAxis,hPointer(1));

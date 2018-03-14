@@ -28,6 +28,7 @@ for f=1:numFrames
  
     %% plotting kernel
     renderFunc(index(data,f));
+    title(sprintf('Reg. Param: %1.1e',evalin('base',sprintf('regParamList(%f)',f))));
  
     %% gif utilities
     % set(gcf,'color','w'); % set figure background to white
@@ -38,9 +39,9 @@ for f=1:numFrames
  
     % On the first loop, create the file. In subsequent loops, append.
     if f==1
-        imwrite(imind,cm,outfile,'gif','DelayTime',0,'loopcount',inf);
+        imwrite(imind,cm,outfile,'gif','DelayTime',1,'loopcount',inf);
     else
-        imwrite(imind,cm,outfile,'gif','DelayTime',0,'writemode','append');
+        imwrite(imind,cm,outfile,'gif','DelayTime',1,'writemode','append');
     end
  
 end

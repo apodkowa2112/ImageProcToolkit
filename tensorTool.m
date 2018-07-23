@@ -197,8 +197,8 @@ hMainFigure.Visible = 'on';
                     hLine = plot(yAxis,lineData);
                     grid on;
                     fLineUpdate = 0;
-                else
-                    set(hLine,'YData',lineData);
+                else % cast to double to avoid bugs with logical datatypes
+                    set(hLine,'YData',double(lineData));
                 end
                 
             case 'Horizontal'
@@ -212,7 +212,7 @@ hMainFigure.Visible = 'on';
                     grid on;
                     fLineUpdate = 0;
                 else
-                    set(hLine,'YData',lineData);
+                    set(hLine,'YData',double(lineData));
                     
                 end
                 

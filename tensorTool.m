@@ -240,6 +240,7 @@ hMainFigure.Visible = 'on';
         % Reset Tags on figure update
         hImageAxes.Tag = 'hImageAxes';
         hLineAxes.Tag =  'hLineAxes';
+        axes(hImageAxes); % for easy caxis
     end
 
     function toggleDirection        

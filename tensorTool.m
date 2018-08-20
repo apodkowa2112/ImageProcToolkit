@@ -120,6 +120,9 @@ colorbar
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes,'Color','none');
 
+fLineUpdate = 1;
+hLine = 0;
+
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
@@ -190,8 +193,13 @@ hMainFigure.Visible = 'on';
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
                 lineData = evalFunc(matData(:,lineNumber,sliceNumber));
-                plot(yAxis,lineData);
-                grid on;
+                if fLineUpdate
+                    hLine = plot(yAxis,lineData);
+                    grid on;
+                    fLineUpdate = 0;
+                else % cast to double to avoid bugs with logical datatypes
+                    set(hLine,'YData',double(lineData));
+                end
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(yAxis,hPointer(2));
@@ -199,8 +207,14 @@ hMainFigure.Visible = 'on';
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
                 lineData = evalFunc(matData(lineNumber,:,sliceNumber));
-                plot(xAxis,lineData);
-                grid on;
+                if fLineUpdate
+                    hLine =  plot(xAxis,lineData);
+                    grid on;
+                    fLineUpdate = 0;
+                else
+                    set(hLine,'YData',double(lineData));
+                    
+                end
                 
             case 'Normal'
                 [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
@@ -212,7 +226,7 @@ hMainFigure.Visible = 'on';
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
                 lineData = evalFunc(squeeze(matData(hPointer(2),hPointer(1),:)));
-                plot(1:size(matData,3),lineData);
+                hLine = plot(1:size(matData,3),lineData);
                 hold on
                 plot(sliceNumber,lineData(sliceNumber),'ro');
                 hold off
@@ -226,6 +240,7 @@ hMainFigure.Visible = 'on';
         % Reset Tags on figure update
         hImageAxes.Tag = 'hImageAxes';
         hLineAxes.Tag =  'hLineAxes';
+        axes(hImageAxes); % for easy caxis
     end
 
     function toggleDirection        
@@ -236,6 +251,7 @@ hMainFigure.Visible = 'on';
             lineDir = 'Vertical';
         end
         lineDirButton.String = lineDir;
+        fLineUpdate = 1;
     end
 
     function [closestMatch,ind] = findClosest(vec,num)

@@ -47,6 +47,13 @@ if isequal(ndims(matData1),3)
     directions = [directions, {'Normal'}];
 end
 
+if size(matData1,3) == 1
+    matData1 = repmat(matData1,1,1,size(matData2,3));
+end
+if size(matData2,3) == 1
+    matData2 = repmat(matData2,1,1,size(matData1,3));
+end
+
 assert(isequal(size(matData1),size(matData2)),'Data matrices have different sizes');
 
 %% Constructors

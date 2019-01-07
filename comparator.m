@@ -43,7 +43,7 @@ assert(nargin(evalFunc)==1,'Only one argument to evalFunc supported.');
 sliceNumber = 1;
 lineData = 0;
 directions = {'Vertical','Horizontal'};
-if isequal(ndims(matData1),3)
+if isequal(max(ndims(matData1), ndims(matData2)),3)
     directions = [directions, {'Normal'}];
 end
 

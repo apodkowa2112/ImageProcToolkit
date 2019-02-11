@@ -43,8 +43,15 @@ assert(nargin(evalFunc)==1,'Only one argument to evalFunc supported.');
 sliceNumber = 1;
 lineData = 0;
 directions = {'Vertical','Horizontal'};
-if isequal(ndims(matData1),3)
+if isequal(max(ndims(matData1), ndims(matData2)),3)
     directions = [directions, {'Normal'}];
+end
+
+if size(matData1,3) == 1
+    matData1 = repmat(matData1,1,1,size(matData2,3));
+end
+if size(matData2,3) == 1
+    matData2 = repmat(matData2,1,1,size(matData1,3));
 end
 
 assert(isequal(size(matData1),size(matData2)),'Data matrices have different sizes');
@@ -56,12 +63,12 @@ hMainFigure = figure('Name','Comparator',...
     );%,'Visible','off');
 
 % Generate Underlay axes
-hUnderlayAxes1 = subplot(3,2,[1 3],'parent',hMainFigure);
+hUnderlayAxes1 = subplot(2,2,[1],'parent',hMainFigure);
 set(hUnderlayAxes1,'Tag','hUnderlayAxes1');
 blue = zeros([size(matData1,1),size(matData1,2),3]); blue(:,:,3) =1;
 hUnderlayImg1 = image(blue);
 
-hUnderlayAxes2 = subplot(3,2,1+[1 3],'parent',hMainFigure);
+hUnderlayAxes2 = subplot(2,2,1+[1],'parent',hMainFigure);
 set(hUnderlayAxes2,'Tag','hUnderlayAxes2');
 red = zeros([size(matData2,1),size(matData2,2),3]); red(:,:,1) =1;
 hUnderlayImg2 = image(red);
@@ -81,7 +88,7 @@ hl1 = linkprop([hImageAxes1,hUnderlayAxes1],{'Position'} );
 hl2 = linkprop([hImageAxes2,hUnderlayAxes2],{'Position'} );
 
 % subplot clobbers axes, so set the position manually
-hLineAxes = axes('Position',[0.13 0.11 0.775 0.15]);
+hLineAxes = subplot(2,2,[3 4]);%axes('Position',[0.13 0.11 0.775 0.15]);
 hLineAxes.Tag = 'hLineAxes';
 grid(hLineAxes,'on');
 
@@ -89,13 +96,6 @@ grid(hLineAxes,'on');
 hPointer = zeros(1,2);
 
 %% Component initialization
-% hSlider
-if length(directions)==3
-    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData1,3)...
-        ,'Value',sliceNumber,'callback',@hSliderCallback,...
-        'Units','normalized','Position',[0.13 0.32,0.48,0.044],...
-        'SliderStep',[1/(size(matData1,3)-1), max(0.1,1/(size(matData1,3)-1))]);
-end
 
 % hToolPanel
 hToolPanel = uipanel(hMainFigure,'Title','Tools');
@@ -112,6 +112,18 @@ hImageAxes2.Position(1) = sum(hImageAxes1.Position([1 3])) + axSep;
 hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
     +0.1*hToolPanel.Position(3);
 hToolPanel.Position(2) = hLineAxes.Position(2);
+
+% hSlider
+if length(directions)==3
+    pos = hLineAxes.Position...
+        + hLineAxes.Position(4)*[ 0 1 0 0];
+    pos(4) = 0.044;
+    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData1,3)...
+        ,'Value',sliceNumber,'callback',@hSliderCallback,...
+        'Units','normalized','Position',pos,...
+        'SliderStep',[1/(size(matData1,3)-1), max(0.1,1/(size(matData1,3)-1))]);
+    hLineAxes.Position(4) = hLineAxes.Position(4)-1.1*pos(4);
+end
 
 % lineDirButton
 lineDirButton = uicontrol(hMainFigure,'Style','pushbutton','Parent',hToolPanel,...

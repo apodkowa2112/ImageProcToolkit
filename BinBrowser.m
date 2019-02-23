@@ -1,12 +1,12 @@
-function varargout = binBrowser(varargin)
+function data = binBrowser(varargin)
 % binBrowser Browse lines in Daedal4 bin/dat format
 
 %% Initialization
 switch length(varargin)
     case 0
-%         [binFile,binPath] = uigetfile('*.bin');
-%         data = loadData(fullfile(binPath,binFile));
-        matData=randn(5,6,7);
+        [binFile,binPath] = uigetfile('*.bin');
+        data = loadData(fullfile(binPath,binFile));
+        matData=data.rf;
         lineNumber =1;
         lineDir = 'Vertical';
 %     case 1
@@ -32,7 +32,7 @@ switch length(varargin)
 end
 
 if ~exist('renderFunc','var') || isempty(renderFunc)
-    renderFunc = @(x) x;
+    renderFunc = @(x) rf2Bmode(x);
 end
 assert(nargin(renderFunc)==1,'Only one argument to renderFunc supported.');
 if ~exist('evalFunc','var') || isempty(evalFunc)
@@ -142,7 +142,8 @@ set(coordTable,'Position',pos);
 
 % hImg
 axes(hImageAxes)      
-hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
+hImg = imagesc(data.lat*1e3,data.time*1e6,renderFunc(matData(:,:,sliceNumber)));
+xlabel('Lat. Dist [mm]'); ylabel('Time (\mu s)')
 colorbar
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes,'Color','none');
@@ -205,10 +206,10 @@ set(hMainFigure,'Visible', 'on');
         
         %% calculate axes
         [xData, yData, cData] = getimage(hImageAxes);
-        dx = diff(xData)/(size(cData,2)-1);
-        dy = diff(yData)/(size(cData,1)-1);
-        xAxis = xData(1):dx:xData(2);
-        yAxis = yData(1):dy:yData(2);
+        dx = diff(xData([1 end]))/(size(cData,2)-1);
+        dy = diff(yData([1 end]))/(size(cData,1)-1);
+        xAxis = xData(1):dx:xData(end);
+        yAxis = yData(1):dy:yData(end);
         assert(isequal(length(xAxis),size(cData,2)),'Error: Bad xAxis length');
         assert(isequal(length(yAxis),size(cData,1)),'Error: Bad yAxis length');
         [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
@@ -216,7 +217,8 @@ set(hMainFigure,'Visible', 'on');
         set(coordTable,'data',[flipud(hPointer(:))' sliceNumber]);
         switch lineDir
             case 'Vertical'
-                [~,lineNumber] = findClosest(xAxis,hPointer(1));
+                lineNumber = hPointer(1); % Wouldn't it be cool if this worked?
+                %[~,lineNumber] = findClosest(xAxis,hPointer(1));
                 mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
                 set(hImg,'AlphaData', mask);
                 axes(hLineAxes)
@@ -230,7 +232,8 @@ set(hMainFigure,'Visible', 'on');
                 end
                 
             case 'Horizontal'
-                [~,lineNumber] = findClosest(yAxis,hPointer(2));
+                lineNumber = hPointer(2); % Wouldn't it be cool if this worked?
+                %[~,lineNumber] = findClosest(yAxis,hPointer(2));
                 mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
                 set(hImg,'AlphaData', mask);
                 axes(hLineAxes)
@@ -245,8 +248,8 @@ set(hMainFigure,'Visible', 'on');
                 end
                 
             case 'Normal'
-                [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
-                [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
+                %[~,hPointer(1)] = findClosest(xAxis,hPointer(1));
+                %[~,hPointer(2)] = findClosest(yAxis,hPointer(2));
                 lineNumber = 0;
                 mask = ones(size(matData(:,:,1))); 
                 mask(:,hPointer(1))=0; mask(hPointer(2),:) = 0;
@@ -290,10 +293,65 @@ set(hMainFigure,'Visible', 'on');
 
 end
 
+function bMode = rf2Bmode(rf)
+    bMode = 20*log10(abs(hilbert(rf)));
+end
+function out = normZero(in)
+    out = in-max(in(:));
+end
 function data = loadData(binName)
     % Loads data from binName
     
     %% Sanity checks
-    assert(exist(binName','file')==2,'File %s does not exist');
+    assert(exist(binName,'file')==2,'Error 404, File not Found: %s',binName);
+    assert(isequal(binName(end-3:end),'.bin'),'File missing .bin extension: %s', binName);
     data = [];
+    
+    %% Build file names
+    bin = binName;
+    n = binName(1:end-4);
+    dat = [n, '.dat'];
+
+    %% Scan Metadata
+    fid = fopen(dat, 'r');
+    A = fscanf(fid, '%f', [9, 1]);
+    fclose(fid);
+    ymult = A(1);           % data gain
+    yzero = A(2);           % data bias?
+    xincr = A(3);           % dt
+    number_samp = A(4);    % number of data points
+    num_scan1 = A(5);        % number of scan lines
+    num_scan2 = A(6);        % number of slices
+    xzero = A(7);           % start time
+    stepsize1 = A(8);       % lateral stepsize
+    stepsize2 = A(9);
+    
+    %% Scan RF data
+    fid = fopen(bin, 'rb', 'b');
+    try
+        for j = 1:num_scan2
+           for i = 1:num_scan1 
+
+              B = fread(fid,number_samp,'short');
+              B = B.*ymult;
+              B = B-mean(B);
+              data.rf(:,i,j) = B;
+           end
+        end
+    catch exc
+        exc
+        error('Error reading data from %s', binName);
+    end
+    fclose(fid);
+    
+    %% Load metadata into output struct
+    data.gain = ymult;
+    data.bias = yzero;
+    data.dt   = xincr;
+    data.size = [number_samp, num_scan1, num_scan2];
+    data.dx   = stepsize1*1e-6;
+    data.dy   = stepsize2*1e-6;
+    data.time = xzero + (0:number_samp-1)*xincr+xzero;
+    data.c    = 1485; % [m/s], good enough approx for water at 20 deg C.
+    data.lat = ((1:num_scan1) - mean([1 num_scan1]))*data.dx;
 end

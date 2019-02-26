@@ -49,7 +49,7 @@ end
 
 %% Constructors
 % figure
-hMainFigure = figure('Name','BinBrowser',...
+hMainFigure = figure('Name',sprintf('BinBrowser: %s',binFile),...
     'Toolbar','figure'...
     );%,'Visible','off');
 
@@ -57,7 +57,7 @@ hMainFigure = figure('Name','BinBrowser',...
 hUnderlayAxes = subplot(3,1,[1 2],'parent',hMainFigure);
 set(hUnderlayAxes,'Tag','hUnderlayAxes');
 green = zeros([size(matData,1),size(matData,2),3]); green(:,:,2) =1;
-hUnderlayImg = image(green);
+hUnderlayImg = image(100*[-1 1],100*[-1 1],green);
 
 hImageAxes = axes('Position',get(hUnderlayAxes,'Position'),'Tag','hImageAxes');
 

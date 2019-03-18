@@ -1,6 +1,6 @@
-function cp = phant_speed(Tw,Tp,Tf,Tb,cw)
+function cp = phant_speed(Tf,Tb,Tp,Tw,cw)
 %% PHANT_SPEED Computes the speed of a phantom by insertion loss
-% function cp = phant_speed(Tw,Tp,Tf,Tb)
+% function cp = phant_speed(Tf,Tb,Tp,Tw,cw)
 % Tw = Tank ref time, no phantom
 % Tp = Tank ref time, phantom
 % Tf = phantom front reflection 

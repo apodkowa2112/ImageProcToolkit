@@ -314,17 +314,19 @@ function data = loadData(binName)
 
     %% Scan Metadata
     fid = fopen(dat, 'r');
-    A = fscanf(fid, '%f', [9, 1]);
+    A = fscanf(fid, '%f', [11, 1]);
     fclose(fid);
     ymult = A(1);           % data gain
-    yzero = A(2);           % data bias?
-    xincr = A(3);           % dt
-    number_samp = A(4);    % number of data points
-    num_scan1 = A(5);        % number of scan lines
-    num_scan2 = A(6);        % number of slices
+    yzero = A(2);           % data bias
+    xincr = A(3);           % dt [s]
+    number_samp = A(4);     % number of data points
+    num_scan1 = A(5);       % number of scan lines
+    num_scan2 = A(6);       % number of slices
     xzero = A(7);           % start time
-    stepsize1 = A(8);       % lateral stepsize
-    stepsize2 = A(9);
+    stepsize1 = A(8);       % lateral stepsize [um]
+    stepsize2 = A(9);       % slice stepsize   [um]
+    c = A(10);              % sound speed [m/s]
+    temp = A(11);           % Temperature [deg C]
     
     %% Scan RF data
     fid = fopen(bin, 'rb', 'b');
@@ -352,6 +354,7 @@ function data = loadData(binName)
     data.dx   = stepsize1*1e-6;
     data.dy   = stepsize2*1e-6;
     data.time = xzero + (0:number_samp-1)*xincr+xzero;
-    data.c    = 1485; % [m/s], good enough approx for water at 20 deg C.
+    data.c    = c; 
     data.lat = ((1:num_scan1) - mean([1 num_scan1]))*data.dx;
+    data.temp = temp;
 end

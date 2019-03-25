@@ -1,10 +1,13 @@
-function makeGif(data, outfile, renderFunc,figHandle)
+function makeGif(data, outfile, renderFunc,titleFunc,figHandle)
 % MAKEGIF Makes a gif of the data
 % Loops over last dimension of data
 % Supported Syntaxes
-% function makeGif(data, outfile, renderFunc)
-% function makeGif(data, outfile, renderFunc, figHandle)
-
+% function makeGif(data, outfile, renderFunc,titleFunc,)
+% function makeGif(data, outfile, renderFunc,titleFunc,figHandle)
+% Example titleFunc:
+%titleFunc = @(f)...
+%    title(sprintf('Reg. Param: %1.1e',...
+%        evalin('base',sprintf('regParamList(%f)',f))));
 %% Handle arguments
 switch ndims(data)
     case 2
@@ -18,18 +21,23 @@ end
 if ~exist('figHandle','var')
     figHandle = gcf;
 end
+
+if ~exist('titleFunc','var')
+    titleFunc = @(f) [];
+end
 %% 
 numFrames = size(data,ndims(data));
 
 %% Generate figure and loop over frames
 figHandle = figure(figHandle);
 
+
 for f=1:numFrames
  
     %% plotting kernel
     renderFunc(index(data,f));
-    title(sprintf('Reg. Param: %1.1e',evalin('base',sprintf('regParamList(%f)',f))));
- 
+    %title(sprintf('Reg. Param: %1.1e',evalin('base',sprintf('regParamList(%f)',f))));
+    titleFunc(f);
     %% gif utilities
     % set(gcf,'color','w'); % set figure background to white
     drawnow;

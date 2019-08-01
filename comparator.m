@@ -145,19 +145,29 @@ coordTable = uitable(hToolPanel,...
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
+% caxis menu
+cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
+    'String',{'Auto','Left','Right','Max','Max Center','Manual'},...
+    'Callback',@cAxisCallback,...
+    'Tooltip', 'Color Axis', ...
+    'Units','normalized',...
+    'Position', [0.05, coordTable.Position(2)-0.175 0.9 0.15]);
+cAxisStyle = 'Auto';
+
 % hImg
-axes(hImageAxes1)      
+axes(hImageAxes1)
 hImg1 = imagesc(renderFunc(matData1(:,:,sliceNumber)));
 colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
+title('Left')
 
 axes(hImageAxes2)      
 hImg2 = imagesc(renderFunc(matData2(:,:,sliceNumber)));
 colorbar
 set(hImg2,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes2,'Color','none');
-
+title('Right')
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
 hLine1 = plot(1:size(matData1,1),lineData); hold on;
@@ -172,6 +182,29 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function cAxisCallback( objectHandle , eventData )
+        styles = get(objectHandle,'String');
+        style = styles{get(objectHandle, 'Value')};
+        switch style
+            case 'Auto'
+                cAxisStyle = style;
+            case 'Manual'
+                cAxisStyle = style;
+            case 'Left'
+                cAxisStyle = style;
+            case 'Right' 
+                cAxisStyle = style;
+            case 'Max' 
+                cAxisStyle = style;
+            case 'Max Center'
+                cAxisStyle = style;
+            otherwise 
+                val = find(cellfun(@(x) isequal(x,cAxisStyle),styles));
+                set(objectHandle,'Value',val);
+        end
+        updateCaxis();
     end
 
     function ImageClickCallback ( objectHandle , eventData )
@@ -217,6 +250,7 @@ hMainFigure.Visible = 'on';
         set(hImg1,'CData',renderFunc(matData1(:,:,sliceNumber)));
         set(hImg2,'CData',renderFunc(matData2(:,:,sliceNumber)));
         
+        updateCaxis();
         %% calculate axes
         [xData, yData, cData1] = getimage(hImageAxes1);
         [xData, yData, cData2] = getimage(hImageAxes2);
@@ -294,6 +328,51 @@ hMainFigure.Visible = 'on';
             lineDir = 'Vertical';
         end
         lineDirButton.String = lineDir;
+    end
+
+    function updateCaxis
+        % Set Clim Mode
+        if isequal(cAxisStyle,'Auto')
+            set([hImageAxes1 hImageAxes2],'CLimMode','auto')
+            return
+        elseif isequal(cAxisStyle,'Left')
+            set(hImageAxes1,'CLimMode','auto');
+            caxis(hImageAxes2,get(hImageAxes1,'CLim'));
+            return
+        elseif isequal(cAxisStyle,'Right')
+            set(hImageAxes2,'CLimMode','auto');
+            caxis(hImageAxes1,get(hImageAxes2,'CLim'));
+            return
+        else 
+            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+        end
+        %% Get Caxis
+        switch cAxisStyle
+            case 'Max'
+                c_max = max(max(renderFunc(matData1(:,:,1))));
+                c_min = min(min(renderFunc(matData1(:,:,1))));
+                for k = 1:max(size(matData1,3))
+                    c_max = max(c_max,...
+                        max(max([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))])));
+                    c_min = min(c_min,...
+                        min(min([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))])));
+                end
+                caxis(hImageAxes1,[c_min,c_max]);
+                caxis(hImageAxes2,[c_min,c_max]);
+            case 'Max Center'
+                c_max = max(max(abs(renderFunc(matData1(:,:,1)))));
+                for k = 1:max(size(matData1,3))
+                    c_max = max(c_max,...
+                        max(max(abs([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))]))));
+                end
+                caxis(hImageAxes1,c_max*[-1 1]);
+                caxis(hImageAxes2,c_max*[-1 1]);
+            otherwise
+                error('Unsupported cAxisStyle: %s',cAxisStyle);
+        end
     end
 
     function [closestMatch,ind] = findClosest(vec,num)

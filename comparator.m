@@ -98,20 +98,22 @@ hPointer = zeros(1,2);
 %% Component initialization
 
 % hToolPanel
-hToolPanel = uipanel(hMainFigure,'Title','Tools');
+hTPfigure = figure('Name','Comparator Tools');
+hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
+hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes1.Units;
-hToolPanel.Position = [0 0 0.2,sum(hImageAxes1.Position([2 4]))-hLineAxes.Position(2)];
-hToolPanel.Units = hLineAxes.Units;
+% hToolPanel.Position = [0 0 0.2,sum(hImageAxes1.Position([2 4]))-hLineAxes.Position(2)];
+% hToolPanel.Units = hLineAxes.Units;
 
-hLineAxes.Position(3)  = hLineAxes.Position(3)-1.1*hToolPanel.Position(3);
+hLineAxes.Position(3)  = hLineAxes.Position(3);%-1.1*hToolPanel.Position(3);
 axSep = hImageAxes2.Position(1)-hImageAxes1.Position(1)-hImageAxes1.Position(3);
 hImageAxes1.Position(3) = (hLineAxes.Position(3)-axSep)/2;
 hImageAxes2.Position(3) = hImageAxes1.Position(3);
 hImageAxes2.Position(1) = sum(hImageAxes1.Position([1 3])) + axSep;
-
-hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
-    +0.1*hToolPanel.Position(3);
-hToolPanel.Position(2) = hLineAxes.Position(2);
+% 
+% hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
+%     ;%+0.1*hToolPanel.Position(3);
+% hToolPanel.Position(2) = hLineAxes.Position(2);
 
 % hSlider
 if length(directions)==3
@@ -126,11 +128,13 @@ if length(directions)==3
 end
 
 % lineDirButton
-lineDirButton = uicontrol(hMainFigure,'Style','pushbutton','Parent',hToolPanel,...
+lineDirButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    ...%uicontrol(hTPfigure,'Style','pushbutton','Parent',hToolPanel,...
     'String',lineDir,'ToolTip','Line Direction',...
     'Callback',@lineDirButton_callback...
     ,'Units','normalized');
 lineDirButton.Position(2) = 0.9;
+lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
 
 % coordTable
 coordTable = uitable(hToolPanel,...
@@ -142,8 +146,10 @@ coordTable = uitable(hToolPanel,...
     'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
     );
+coordTable.ColumnWidth = {floor(0.97*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
+
 
 % caxis menu
 cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...

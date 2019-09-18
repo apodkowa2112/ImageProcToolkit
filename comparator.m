@@ -120,7 +120,7 @@ if length(directions)==3
     pos = hLineAxes.Position...
         + hLineAxes.Position(4)*[ 0 1 0 0];
     pos(4) = 0.044;
-    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData1,3)...
+    hSlider = uicontrol(hTPfigure,'Style','slider','Min',1,'Max',size(matData1,3)...
         ,'Value',sliceNumber,'callback',@hSliderCallback,...
         'Units','normalized','Position',pos,...
         'SliderStep',[1/(size(matData1,3)-1), max(0.1,1/(size(matData1,3)-1))]);
@@ -136,6 +136,10 @@ lineDirButton = uicontrol(hToolPanel,'Style','pushbutton',...
 lineDirButton.Position(2) = 0.9;
 lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
 
+% makeGifButton
+makeGifButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Make Gif','Callback',@makeGif_callback,'units','normalized');
+makeGifButton.Position(3) = 1-2*makeGifButton.Position(1);
 % coordTable
 coordTable = uitable(hToolPanel,...
     'columnName',{'row','col','slice'},...
@@ -174,6 +178,9 @@ colorbar
 set(hImg2,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes2,'Color','none');
 title('Right')
+
+linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
+
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
 hLine1 = plot(1:size(matData1,1),lineData); hold on;
@@ -188,6 +195,33 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function makeGif_callback(hObject,eventData)
+        gifName = 'comparison.gif';
+        [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+        gifName = fullfile(fp,gifName);
+        makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
+            @updateGif,@(x) [],hMainFigure);
+        
+        while true
+            val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+            [val,stat] = str2num(val{1});
+            if stat && ~isequal(val,0)
+                [val_num,val_den] = rat(val,1e-4);
+                break;
+            end
+        end
+        cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+            gifName,gifName);
+        system(cmd);
+        
+        msgbox(sprintf('Data stored in %s',gifName));
+        function updateGif(i)
+            hSlider.Value = i;
+            hSliderCallback(hSlider,[]);
+        end
+
     end
 
     function cAxisCallback( objectHandle , eventData )
@@ -351,6 +385,7 @@ hMainFigure.Visible = 'on';
             return
         else 
             set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            return
         end
         %% Get Caxis
         switch cAxisStyle

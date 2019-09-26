@@ -8,6 +8,8 @@ function makeGif(data, outfile, renderFunc,titleFunc,figHandle)
 %titleFunc = @(f)...
 %    title(sprintf('Reg. Param: %1.1e',...
 %        evalin('base',sprintf('regParamList(%f)',f))));
+% Example renderFunc:
+% renderFunc = @(x) set(hImg,'CData',rf2Bmode(x)-p_max);
 %% Handle arguments
 switch ndims(data)
     case 2

@@ -32,6 +32,7 @@ numFrames = size(data,ndims(data));
 
 %% Generate figure and loop over frames
 figHandle = figure(figHandle);
+set(figHandle,'Color',ones(3,1));
 
 
 for f=1:numFrames

@@ -98,27 +98,29 @@ hPointer = zeros(1,2);
 %% Component initialization
 
 % hToolPanel
-hToolPanel = uipanel(hMainFigure,'Title','Tools');
+hTPfigure = figure('Name','Comparator Tools');
+hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
+hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes1.Units;
-hToolPanel.Position = [0 0 0.2,sum(hImageAxes1.Position([2 4]))-hLineAxes.Position(2)];
-hToolPanel.Units = hLineAxes.Units;
+% hToolPanel.Position = [0 0 0.2,sum(hImageAxes1.Position([2 4]))-hLineAxes.Position(2)];
+% hToolPanel.Units = hLineAxes.Units;
 
-hLineAxes.Position(3)  = hLineAxes.Position(3)-1.1*hToolPanel.Position(3);
+hLineAxes.Position(3)  = hLineAxes.Position(3);%-1.1*hToolPanel.Position(3);
 axSep = hImageAxes2.Position(1)-hImageAxes1.Position(1)-hImageAxes1.Position(3);
 hImageAxes1.Position(3) = (hLineAxes.Position(3)-axSep)/2;
 hImageAxes2.Position(3) = hImageAxes1.Position(3);
 hImageAxes2.Position(1) = sum(hImageAxes1.Position([1 3])) + axSep;
-
-hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
-    +0.1*hToolPanel.Position(3);
-hToolPanel.Position(2) = hLineAxes.Position(2);
+% 
+% hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
+%     ;%+0.1*hToolPanel.Position(3);
+% hToolPanel.Position(2) = hLineAxes.Position(2);
 
 % hSlider
 if length(directions)==3
     pos = hLineAxes.Position...
         + hLineAxes.Position(4)*[ 0 1 0 0];
     pos(4) = 0.044;
-    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData1,3)...
+    hSlider = uicontrol(hTPfigure,'Style','slider','Min',1,'Max',size(matData1,3)...
         ,'Value',sliceNumber,'callback',@hSliderCallback,...
         'Units','normalized','Position',pos,...
         'SliderStep',[1/(size(matData1,3)-1), max(0.1,1/(size(matData1,3)-1))]);
@@ -126,12 +128,18 @@ if length(directions)==3
 end
 
 % lineDirButton
-lineDirButton = uicontrol(hMainFigure,'Style','pushbutton','Parent',hToolPanel,...
+lineDirButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    ...%uicontrol(hTPfigure,'Style','pushbutton','Parent',hToolPanel,...
     'String',lineDir,'ToolTip','Line Direction',...
     'Callback',@lineDirButton_callback...
     ,'Units','normalized');
 lineDirButton.Position(2) = 0.9;
+lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
 
+% makeGifButton
+makeGifButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Make Gif','Callback',@makeGif_callback,'units','normalized');
+makeGifButton.Position(3) = 1-2*makeGifButton.Position(1);
 % coordTable
 coordTable = uitable(hToolPanel,...
     'columnName',{'row','col','slice'},...
@@ -142,21 +150,36 @@ coordTable = uitable(hToolPanel,...
     'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
     );
+coordTable.ColumnWidth = {floor(0.97*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
+
+% caxis menu
+cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
+    'String',{'Auto','Left','Right','Max','Max Center','Manual'},...
+    'Callback',@cAxisCallback,...
+    'Tooltip', 'Color Axis', ...
+    'Units','normalized',...
+    'Position', [0.05, coordTable.Position(2)-0.175 0.9 0.15]);
+cAxisStyle = 'Auto';
+
 % hImg
-axes(hImageAxes1)      
+axes(hImageAxes1)
 hImg1 = imagesc(renderFunc(matData1(:,:,sliceNumber)));
 colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
+title('Left')
 
 axes(hImageAxes2)      
 hImg2 = imagesc(renderFunc(matData2(:,:,sliceNumber)));
 colorbar
 set(hImg2,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes2,'Color','none');
+title('Right')
+
+linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
 
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
@@ -172,6 +195,56 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function makeGif_callback(hObject,eventData)
+        gifName = 'comparison.gif';
+        [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+        gifName = fullfile(fp,gifName);
+        makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
+            @updateGif,@(x) [],hMainFigure);
+        
+        while true
+            val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+            [val,stat] = str2num(val{1});
+            if stat && ~isequal(val,0)
+                [val_num,val_den] = rat(val,1e-4);
+                break;
+            end
+        end
+        cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+            gifName,gifName);
+        system(cmd);
+        
+        msgbox(sprintf('Data stored in %s',gifName));
+        function updateGif(i)
+            hSlider.Value = i;
+            hSliderCallback(hSlider,[]);
+        end
+
+    end
+
+    function cAxisCallback( objectHandle , eventData )
+        styles = get(objectHandle,'String');
+        style = styles{get(objectHandle, 'Value')};
+        switch style
+            case 'Auto'
+                cAxisStyle = style;
+            case 'Manual'
+                cAxisStyle = style;
+            case 'Left'
+                cAxisStyle = style;
+            case 'Right' 
+                cAxisStyle = style;
+            case 'Max' 
+                cAxisStyle = style;
+            case 'Max Center'
+                cAxisStyle = style;
+            otherwise 
+                val = find(cellfun(@(x) isequal(x,cAxisStyle),styles));
+                set(objectHandle,'Value',val);
+        end
+        updateCaxis();
     end
 
     function ImageClickCallback ( objectHandle , eventData )
@@ -217,6 +290,7 @@ hMainFigure.Visible = 'on';
         set(hImg1,'CData',renderFunc(matData1(:,:,sliceNumber)));
         set(hImg2,'CData',renderFunc(matData2(:,:,sliceNumber)));
         
+        updateCaxis();
         %% calculate axes
         [xData, yData, cData1] = getimage(hImageAxes1);
         [xData, yData, cData2] = getimage(hImageAxes2);
@@ -294,6 +368,52 @@ hMainFigure.Visible = 'on';
             lineDir = 'Vertical';
         end
         lineDirButton.String = lineDir;
+    end
+
+    function updateCaxis
+        % Set Clim Mode
+        if isequal(cAxisStyle,'Auto')
+            set([hImageAxes1 hImageAxes2],'CLimMode','auto')
+            return
+        elseif isequal(cAxisStyle,'Left')
+            set(hImageAxes1,'CLimMode','auto');
+            caxis(hImageAxes2,get(hImageAxes1,'CLim'));
+            return
+        elseif isequal(cAxisStyle,'Right')
+            set(hImageAxes2,'CLimMode','auto');
+            caxis(hImageAxes1,get(hImageAxes2,'CLim'));
+            return
+        else 
+            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            return
+        end
+        %% Get Caxis
+        switch cAxisStyle
+            case 'Max'
+                c_max = max(max(renderFunc(matData1(:,:,1))));
+                c_min = min(min(renderFunc(matData1(:,:,1))));
+                for k = 1:max(size(matData1,3))
+                    c_max = max(c_max,...
+                        max(max([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))])));
+                    c_min = min(c_min,...
+                        min(min([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))])));
+                end
+                caxis(hImageAxes1,[c_min,c_max]);
+                caxis(hImageAxes2,[c_min,c_max]);
+            case 'Max Center'
+                c_max = max(max(abs(renderFunc(matData1(:,:,1)))));
+                for k = 1:max(size(matData1,3))
+                    c_max = max(c_max,...
+                        max(max(abs([renderFunc(matData1(:,:,k))...
+                        renderFunc(matData2(:,:,k))]))));
+                end
+                caxis(hImageAxes1,c_max*[-1 1]);
+                caxis(hImageAxes2,c_max*[-1 1]);
+            otherwise
+                error('Unsupported cAxisStyle: %s',cAxisStyle);
+        end
     end
 
     function [closestMatch,ind] = findClosest(vec,num)

@@ -72,33 +72,46 @@ grid(hLineAxes,'on');
 hPointer = zeros(1,2);
 
 %% Component initialization
+
+% hToolPanel
+hTPfigure = figure('Name','Tensor Tools');
+hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
+hToolPanel = uipanel(hTPfigure,'Title','Tools');
+hToolPanel.Units = hImageAxes.Units;
+% hToolPanel.Position = [0 0 0.2,sum(hImageAxes.Position([2 4]))-hLineAxes.Position(2)];
+% hToolPanel.Units = hLineAxes.Units;
+
+hLineAxes.Position(3)  = hLineAxes.Position(3);%-1.1*hToolPanel.Position(3);
+hImageAxes.Position(3) = hLineAxes.Position(3);
+
+%hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
+%    +0.1*hToolPanel.Position(3);
+%hToolPanel.Position(2) = hLineAxes.Position(2);
+
 % hSlider
 if length(directions)==3
-    hSlider = uicontrol(hMainFigure,'Style','slider','Min',1,'Max',size(matData,3)...
+    pos = hLineAxes.Position...
+        + hLineAxes.Position(4)*[ 0 1 0 0];
+    pos(4) = 0.044;
+    hSlider = uicontrol(hToolPanel,'Style','slider','Min',1,'Max',size(matData,3)...
         ,'Value',sliceNumber,'callback',@hSliderCallback,...
-        'Units','normalized','Position',[0.13 0.32,0.48,0.044],...
+        'Units','normalized','Position',[0. 0.5,1,0.044],...
         'SliderStep',[1/(size(matData,3)-1), max(0.1,1/(size(matData,3)-1))]);
 end
 
-% hToolPanel
-hToolPanel = uipanel(hMainFigure,'Title','Tools');
-hToolPanel.Units = hImageAxes.Units;
-hToolPanel.Position = [0 0 0.2,sum(hImageAxes.Position([2 4]))-hLineAxes.Position(2)];
-hToolPanel.Units = hLineAxes.Units;
-
-hLineAxes.Position(3)  = hLineAxes.Position(3)-1.1*hToolPanel.Position(3);
-hImageAxes.Position(3) = hLineAxes.Position(3);
-
-hToolPanel.Position(1) = sum(hLineAxes.Position([1 3]))...
-    +0.1*hToolPanel.Position(3);
-hToolPanel.Position(2) = hLineAxes.Position(2);
-
 % lineDirButton
-lineDirButton = uicontrol(hMainFigure,'Style','pushbutton','Parent',hToolPanel,...
+lineDirButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    ...%uicontrol(hTPfigure,'Style','pushbutton','Parent',hToolPanel,...
     'String',lineDir,'ToolTip','Line Direction',...
     'Callback',@lineDirButton_callback...
     ,'Units','normalized');
 lineDirButton.Position(2) = 0.9;
+lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
+
+% makeGifButton
+makeGifButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Make Gif','Callback',@makeGif_callback,'units','normalized');
+makeGifButton.Position(3) = 1-2*makeGifButton.Position(1);
 
 % coordTable
 coordTable = uitable(hToolPanel,...
@@ -110,6 +123,7 @@ coordTable = uitable(hToolPanel,...
     'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
     );
+coordTable.ColumnWidth = {floor(0.95*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
@@ -131,6 +145,56 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function makeGif_callback(hObject,eventData)
+        gifName = 'animation.gif';
+        [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+        gifName = fullfile(fp,gifName);
+        makeGif(permute(1:size(matData,3),[1 3 2]),gifName,...
+            @updateGif,@(x) [],hMainFigure);
+        
+        while true
+            val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+            [val,stat] = str2num(val{1});
+            if stat && ~isequal(val,0)
+                [val_num,val_den] = rat(val,1e-4);
+                break;
+            end
+        end
+        cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+            gifName,gifName);
+        system(cmd);
+        
+        msgbox(sprintf('Data stored in %s',gifName));
+        function updateGif(i)
+            hSlider.Value = i;
+            hSliderCallback(hSlider,[]);
+        end
+
+    end
+
+    function cAxisCallback( objectHandle , eventData )
+        styles = get(objectHandle,'String');
+        style = styles{get(objectHandle, 'Value')};
+        switch style
+            case 'Auto'
+                cAxisStyle = style;
+            case 'Manual'
+                cAxisStyle = style;
+            case 'Left'
+                cAxisStyle = style;
+            case 'Right' 
+                cAxisStyle = style;
+            case 'Max' 
+                cAxisStyle = style;
+            case 'Max Center'
+                cAxisStyle = style;
+            otherwise 
+                val = find(cellfun(@(x) isequal(x,cAxisStyle),styles));
+                set(objectHandle,'Value',val);
+        end
+        updateCaxis();
     end
 
     function ImageClickCallback ( objectHandle , eventData )

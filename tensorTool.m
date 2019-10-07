@@ -50,11 +50,15 @@ hMainFigure = figure('Name','tensorTool',...
     ,'CloseRequestFcn',@closeUI...
     );%,'Visible','off');
 
+latAxis = 1:size(matData,2);
+axAxis = 1:size(matData,1);
+frameAxis = 1:size(matData,3);
+
 % Generate axes
 hUnderlayAxes = subplot(3,1,[1 2],'parent',hMainFigure);
 set(hUnderlayAxes,'Tag','hUnderlayAxes');
 green = zeros([size(matData,1),size(matData,2),3]); green(:,:,2) =1;
-hUnderlayImg = image(green);
+hUnderlayImg = image(latAxis,axAxis,green);
 
 hImageAxes = axes('Position',get(hUnderlayAxes,'Position'));
 
@@ -114,6 +118,14 @@ lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
 makeGifButton = uicontrol(hToolPanel,'Style','pushbutton',...
     'String','Make Gif','Callback',@makeGif_callback,'units','normalized');
 makeGifButton.Position(3) = 1-2*makeGifButton.Position(1);
+if length(directions)~=3
+    makeGifButton.Visible = 'off';
+end
+% setAxesButton
+setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Set Axes','units','normalized','Callback',@setAxes_callback);
+setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
+setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
 % coordTable
 coordTable = uitable(hToolPanel,...
@@ -130,8 +142,9 @@ coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
 % hImg
-axes(hImageAxes)      
-hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
+axes(hImageAxes)   
+hImg = imagesc(latAxis,axAxis,renderFunc(matData(:,:,sliceNumber)));
+% linkprop([hImg,hUnderlayImg],{'XData','YData'});
 colorbar
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes,'Color','none');
@@ -185,6 +198,39 @@ hMainFigure.Visible = 'on';
 
     end
 
+    function setAxes_callback(hObject, eventData)
+        prompt = {'Lat. Step'; 'Ax. Step'};
+        defaults = diff([latAxis(1:2); axAxis(1:2)]')';
+        if length(directions)==3
+            prompt{end+1} = 'Frame Step';
+            defaults(end+1) = diff(frameAxis(1:2));
+        end
+        defaults = num2cell(defaults);
+        defaults = cellfun(@num2str,defaults,'UniformOutput',false);
+        resp = inputdlg(prompt,'Set Axes',1,defaults);
+        try 
+            resp=cellfun(@str2num,resp);
+        catch msg
+            warndlg('Error processing input!')
+            return
+        end
+        try
+            validateattributes(resp,{'numeric'},{'>',0});
+        catch msg
+            errordlg(msg.message,'Invalid Input!')
+            return
+        end
+        [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+        [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
+        latAxis = (0:(size(matData,2)-1))*resp(1);
+        axAxis  = (0:(size(matData,1)-1))*resp(2);
+        hPointer = [latAxis(ind(1)), axAxis(ind(2))];
+        if length(directions)==3
+            frameAxis = (0:(size(matData,3)-1))*resp(3);
+        end
+        updatePlots;
+    end
+
     function cAxisCallback( objectHandle , eventData )
         styles = get(objectHandle,'String');
         style = styles{get(objectHandle, 'Value')};
@@ -192,10 +238,6 @@ hMainFigure.Visible = 'on';
             case 'Auto'
                 cAxisStyle = style;
             case 'Manual'
-                cAxisStyle = style;
-            case 'Left'
-                cAxisStyle = style;
-            case 'Right' 
                 cAxisStyle = style;
             case 'Max' 
                 cAxisStyle = style;
@@ -234,7 +276,8 @@ hMainFigure.Visible = 'on';
         else
             hObject.Data(row,col) = coordinate;
         end
-        hPointer = flipud(hObject.Data(1:2)');
+        hPointer(1) = latAxis(hObject.Data(2));
+        hPointer(2) = axAxis(hObject.Data(1));
         updatePlots;
     end
 
@@ -248,65 +291,70 @@ hMainFigure.Visible = 'on';
 %         colorbar
 %         set(hImg,'ButtonDownFcn',@ImageClickCallback);
 %         set(hImageAxes,'Color','none');
-        set(hImg,'CData',renderFunc(matData(:,:,sliceNumber)));
-        
+        yLim=axAxis([1 end])+diff(axAxis(1:2))*[-0.5 0.5];
+        xLim=latAxis([1 end])+diff(latAxis(1:2))*[-0.5 0.5];
+        set(hImg,'CData',renderFunc(matData(:,:,sliceNumber))...
+            ,'YData',axAxis...
+            ,'XData',latAxis...
+        );
+        set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
+        xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
         %% calculate axes
         [xData, yData, cData] = getimage(hImageAxes);
         dx = diff(xData)/(size(cData,2)-1);
         dy = diff(yData)/(size(cData,1)-1);
-        xAxis = xData(1):dx:xData(2);
-        yAxis = yData(1):dy:yData(2);
-        assert(isequal(length(xAxis),size(cData,2)),'Error: Bad xAxis length');
-        assert(isequal(length(yAxis),size(cData,1)),'Error: Bad yAxis length');
-        [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
-        [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
-        set(coordTable,'data',[flipud(hPointer(:))' sliceNumber]);
+%         latAxis = xData(1):dx:xData(2);
+%         axAxis = yData(1):dy:yData(2);
+        assert(isequal(length(latAxis),size(cData,2)),'Error: Bad xAxis length');
+        assert(isequal(length(axAxis),size(cData,1)),'Error: Bad yAxis length');
+        [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+        [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
+        set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
         switch lineDir
             case 'Vertical'
-                [~,lineNumber] = findClosest(xAxis,hPointer(1));
+                [~,lineNumber] = findClosest(latAxis,hPointer(1));
                 mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
                 lineData = evalFunc(matData(:,lineNumber,sliceNumber));
                 if fLineUpdate
-                    hLine = plot(yAxis,lineData);
+                    hLine = plot(axAxis,lineData);
                     grid on;
                     fLineUpdate = 0;
                 else % cast to double to avoid bugs with logical datatypes
-                    set(hLine,'YData',double(lineData));
+                    set(hLine,'YData',double(lineData),'XData',axAxis);
                 end
                 
             case 'Horizontal'
-                [~,lineNumber] = findClosest(yAxis,hPointer(2));
+                [~,lineNumber] = findClosest(axAxis,hPointer(2));
                 mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
                 lineData = evalFunc(matData(lineNumber,:,sliceNumber));
                 if fLineUpdate
-                    hLine =  plot(xAxis,lineData);
+                    hLine =  plot(latAxis,lineData);
                     grid on;
                     fLineUpdate = 0;
                 else
-                    set(hLine,'YData',double(lineData));
+                    set(hLine,'YData',double(lineData),'XData',latAxis);
                     
                 end
                 
             case 'Normal'
-                [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
-                [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
+                [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+                [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
                 lineNumber = 0;
                 mask = ones(size(matData(:,:,1))); 
-                mask(:,hPointer(1))=0; mask(hPointer(2),:) = 0;
+                mask(:,ind(1))=0; mask(ind(2),:) = 0;
                 
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
-                lineData = evalFunc(squeeze(matData(hPointer(2),hPointer(1),:)));
-                hLine = plot(1:size(matData,3),lineData);
+                lineData = evalFunc(squeeze(matData(ind(2),ind(1),:)));
+                hLine = plot(frameAxis,lineData);
                 hold on
-                plot(sliceNumber,lineData(sliceNumber),'ro');
+                plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
                 hold off
                 grid on;
-                
             
             otherwise 
                 error('Error: Invalid lineDir (%s)',lineDir');

@@ -47,6 +47,7 @@ end
 % figure
 hMainFigure = figure('Name','tensorTool',...
     'Toolbar','figure'...
+    ,'CloseRequestFcn',@closeUI...
     );%,'Visible','off');
 
 % Generate axes
@@ -74,7 +75,8 @@ hPointer = zeros(1,2);
 %% Component initialization
 
 % hToolPanel
-hTPfigure = figure('Name','Tensor Tools');
+hTPfigure = figure('Name','Tensor Tools','Menubar','none',...
+    'NumberTitle','off','CloseRequestFcn',@closeUI);
 hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
 hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes.Units;
@@ -145,6 +147,15 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function closeUI(hObject,eventdata)
+        try delete(hMainFigure);
+        catch 
+        end
+        try delete(hTPfigure);
+        catch
+        end
     end
 
     function makeGif_callback(hObject,eventData)

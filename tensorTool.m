@@ -43,16 +43,15 @@ if isequal(ndims(matData),3)
     directions = [directions, {'Normal'}];
 end
 
+latAxis = 1:size(matData,2);
+axAxis = 1:size(matData,1);
+frameAxis = 1:size(matData,3);
 %% Constructors
 % figure
 hMainFigure = figure('Name','tensorTool',...
     'Toolbar','figure'...
     ,'CloseRequestFcn',@closeUI...
     );%,'Visible','off');
-
-latAxis = 1:size(matData,2);
-axAxis = 1:size(matData,1);
-frameAxis = 1:size(matData,3);
 
 % Generate axes
 hUnderlayAxes = subplot(3,1,[1 2],'parent',hMainFigure);
@@ -220,14 +219,40 @@ hMainFigure.Visible = 'on';
             errordlg(msg.message,'Invalid Input!')
             return
         end
+
+        % Update hPointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
+        
+        % Update axes
+        latOld = latAxis;
+        axOld = axAxis;
         latAxis = (0:(size(matData,2)-1))*resp(1);
         axAxis  = (0:(size(matData,1)-1))*resp(2);
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
             frameAxis = (0:(size(matData,3)-1))*resp(3);
         end
+        
+        % Rederive limits on old axes
+        % Image toolbox likes half pixel edges
+        yLim=ylim(hImageAxes)-diff(axOld(1:2))*[-0.5 0.5];
+        xLim=xlim(hImageAxes)-diff(latOld(1:2))*[-0.5 0.5];
+        [~,yLim(1)] = findClosest(axOld,yLim(1));
+        [~,yLim(2)] = findClosest(axOld,yLim(2));
+        [~,xLim(1)] = findClosest(latOld,xLim(1));
+        [~,xLim(2)] = findClosest(latOld,xLim(2));
+        yLim = axAxis(yLim)+diff(axAxis(1:2))*0.5*[-1 1];
+        xLim = latAxis(xLim)+diff(latAxis(1:2))*0.5*[-1 1];
+        
+        % Update handles
+        set(hImg...,'CData',renderFunc(matData(:,:,sliceNumber))...
+            ,'YData',axAxis...
+            ,'XData',latAxis...
+        );
+        set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
+        xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
+        
         updatePlots;
     end
 
@@ -286,27 +311,21 @@ hMainFigure.Visible = 'on';
         figure(hMainFigure)
         
         %% Render image
-%         axes(hImageAxes)      
-%         hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
-%         colorbar
-%         set(hImg,'ButtonDownFcn',@ImageClickCallback);
-%         set(hImageAxes,'Color','none');
-        yLim=axAxis([1 end])+diff(axAxis(1:2))*[-0.5 0.5];
-        xLim=latAxis([1 end])+diff(latAxis(1:2))*[-0.5 0.5];
+%         yLim=axAxis([1 end])+diff(axAxis(1:2))*[-0.5 0.5];
+%         xLim=latAxis([1 end])+diff(latAxis(1:2))*[-0.5 0.5];
         set(hImg,'CData',renderFunc(matData(:,:,sliceNumber))...
-            ,'YData',axAxis...
-            ,'XData',latAxis...
+            ...,'YData',axAxis...
+            ...,'XData',latAxis...
         );
-        set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
-        xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
+%         set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
+%         xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
+        
         %% calculate axes
-        [xData, yData, cData] = getimage(hImageAxes);
-        dx = diff(xData)/(size(cData,2)-1);
-        dy = diff(yData)/(size(cData,1)-1);
-%         latAxis = xData(1):dx:xData(2);
-%         axAxis = yData(1):dy:yData(2);
-        assert(isequal(length(latAxis),size(cData,2)),'Error: Bad xAxis length');
-        assert(isequal(length(axAxis),size(cData,1)),'Error: Bad yAxis length');
+%         [xData, yData, cData] = getimage(hImageAxes);
+%         dx = diff(xData)/(size(cData,2)-1);
+%         dy = diff(yData)/(size(cData,1)-1);
+%         assert(isequal(length(latAxis),size(cData,2)),'Error: Bad xAxis length');
+%         assert(isequal(length(axAxis),size(cData,1)),'Error: Bad yAxis length');
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
         set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
@@ -336,8 +355,7 @@ hMainFigure.Visible = 'on';
                     grid on;
                     fLineUpdate = 0;
                 else
-                    set(hLine,'YData',double(lineData),'XData',latAxis);
-                    
+                    set(hLine,'YData',double(lineData),'XData',latAxis);                    
                 end
                 
             case 'Normal'

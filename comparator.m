@@ -56,22 +56,27 @@ end
 
 assert(isequal(size(matData1),size(matData2)),'Data matrices have different sizes');
 
+latAxis = 1:size(matData1,2);
+axAxis = 1:size(matData1,1);
+frameAxis = 1:size(matData1,3);
+
 %% Constructors
 % figure
 hMainFigure = figure('Name','Comparator',...
     'Toolbar','figure'...
+    ,'CloseRequestFcn',@closeUI...
     );%,'Visible','off');
 
 % Generate Underlay axes
 hUnderlayAxes1 = subplot(2,2,[1],'parent',hMainFigure);
 set(hUnderlayAxes1,'Tag','hUnderlayAxes1');
 blue = zeros([size(matData1,1),size(matData1,2),3]); blue(:,:,3) =1;
-hUnderlayImg1 = image(blue);
+hUnderlayImg1 = image(latAxis,axAxis,blue);
 
 hUnderlayAxes2 = subplot(2,2,1+[1],'parent',hMainFigure);
 set(hUnderlayAxes2,'Tag','hUnderlayAxes2');
 red = zeros([size(matData2,1),size(matData2,2),3]); red(:,:,1) =1;
-hUnderlayImg2 = image(red);
+hUnderlayImg2 = image(latAxis,axAxis,red);
 
 % Generate image axes
 hImageAxes1 = axes('Position',get(hUnderlayAxes1,'Position'));
@@ -81,7 +86,6 @@ colormap(hImageAxes1,gray);
 hImageAxes2 = axes('Position',get(hUnderlayAxes2,'Position'));
 hImageAxes2.Tag = 'hImageAxes2';
 colormap(hImageAxes2,gray);
-
 
 linkaxes([hImageAxes1,hUnderlayAxes1,hImageAxes2, hUnderlayAxes2]);
 hl1 = linkprop([hImageAxes1,hUnderlayAxes1],{'Position'} );
@@ -98,7 +102,8 @@ hPointer = zeros(1,2);
 %% Component initialization
 
 % hToolPanel
-hTPfigure = figure('Name','Comparator Tools');
+hTPfigure = figure('Name','Comparator Tools','Menubar','none',...
+    'NumberTitle','off','CloseRequestFcn',@closeUI);
 hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
 hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes1.Units;
@@ -120,7 +125,7 @@ if length(directions)==3
     pos = hLineAxes.Position...
         + hLineAxes.Position(4)*[ 0 1 0 0];
     pos(4) = 0.044;
-    hSlider = uicontrol(hTPfigure,'Style','slider','Min',1,'Max',size(matData1,3)...
+    hSlider = uicontrol(hToolPanel,'Style','slider','Min',1,'Max',size(matData1,3)...
         ,'Value',sliceNumber,'callback',@hSliderCallback,...
         'Units','normalized','Position',pos,...
         'SliderStep',[1/(size(matData1,3)-1), max(0.1,1/(size(matData1,3)-1))]);
@@ -140,6 +145,14 @@ lineDirButton.Position(3) = 1-2*lineDirButton.Position(1);
 makeGifButton = uicontrol(hToolPanel,'Style','pushbutton',...
     'String','Make Gif','Callback',@makeGif_callback,'units','normalized');
 makeGifButton.Position(3) = 1-2*makeGifButton.Position(1);
+if length(directions)~=3
+    makeGifButton.Visible = 'off';
+end
+% setAxesButton
+setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Set Axes','units','normalized','Callback',@setAxes_callback);
+setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
+setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
 % coordTable
 coordTable = uitable(hToolPanel,...
@@ -151,7 +164,7 @@ coordTable = uitable(hToolPanel,...
     'CellEditCallback',@coordTableEditCallback,...
     'Units','normalized','Position',[0 0.675 1 0.2]...
     );
-coordTable.ColumnWidth = {floor(0.97*hTPfigure.Position(3)/3)};
+coordTable.ColumnWidth = {floor(0.95*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
@@ -167,7 +180,7 @@ cAxisStyle = 'Auto';
 
 % hImg
 axes(hImageAxes1)
-hImg1 = imagesc(renderFunc(matData1(:,:,sliceNumber)));
+hImg1 = imagesc(latAxis,axAxis,renderFunc(matData1(:,:,sliceNumber)));
 colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
@@ -180,7 +193,7 @@ set(hImg2,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes2,'Color','none');
 title('Right')
 
-linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
+% linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
 
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
@@ -196,6 +209,15 @@ hMainFigure.Visible = 'on';
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
+    end
+
+    function closeUI(hObject,eventdata)
+        try delete(hMainFigure);
+        catch 
+        end
+        try delete(hTPfigure);
+        catch
+        end
     end
 
     function makeGif_callback(hObject,eventData)
@@ -223,6 +245,67 @@ hMainFigure.Visible = 'on';
             hSliderCallback(hSlider,[]);
         end
 
+    end
+
+    function setAxes_callback(hObject, eventData)
+        warning('SetAxes not supported yet!')
+        prompt = {'Lat. Step'; 'Ax. Step'};
+        defaults = diff([latAxis(1:2); axAxis(1:2)]')';
+        if length(directions)==3
+            prompt{end+1} = 'Frame Step';
+            defaults(end+1) = diff(frameAxis(1:2));
+        end
+        defaults = num2cell(defaults);
+        defaults = cellfun(@num2str,defaults,'UniformOutput',false);
+        resp = inputdlg(prompt,'Set Axes',1,defaults);
+        try 
+            resp=cellfun(@str2num,resp);
+        catch msg
+            warndlg('Error processing input!')
+            return
+        end
+        try
+            validateattributes(resp,{'numeric'},{'>',0});
+        catch msg
+            errordlg(msg.message,'Invalid Input!')
+            return
+        end
+
+        % Update hPointer
+        [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+        [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
+        
+        % Update axes
+        latOld = latAxis;
+        axOld  = axAxis;
+        latAxis = (0:(length(latAxis)-1))*resp(1);
+        axAxis  = (0:(length( axAxis)-1))*resp(2);
+        hPointer = [latAxis(ind(1)), axAxis(ind(2))];
+        if length(directions)==3
+            frameAxis = (0:(length(frameAxis)-1))*resp(3);
+        end
+        
+        % Rederive limits on old axes
+        % Image toolbox likes half pixel edges
+        yLim=ylim(hImageAxes1)-diff(axOld(1:2))*[-0.5 0.5];
+        xLim=xlim(hImageAxes1)-diff(latOld(1:2))*[-0.5 0.5];
+        [~,yLim(1)] = findClosest(axOld,yLim(1));
+        [~,yLim(2)] = findClosest(axOld,yLim(2));
+        [~,xLim(1)] = findClosest(latOld,xLim(1));
+        [~,xLim(2)] = findClosest(latOld,xLim(2));
+        yLim = axAxis(yLim)+diff(axAxis(1:2))*0.5*[-1 1];
+        xLim = latAxis(xLim)+diff(latAxis(1:2))*0.5*[-1 1];
+        
+        % Update handles
+        set([hImg1,hImg2]...,'CData',renderFunc(matData(:,:,sliceNumber))...
+            ,'YData',axAxis...
+            ,'XData',latAxis...
+        );
+        set([hUnderlayImg1 hUnderlayImg2],'YData',axAxis,'XData',latAxis);
+        xlim(hImageAxes1,xLim); ylim(hImageAxes1,yLim);
+        xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
+        
+        updatePlots;
     end
 
     function cAxisCallback( objectHandle , eventData )
@@ -274,7 +357,8 @@ hMainFigure.Visible = 'on';
         else
             hObject.Data(row,col) = coordinate;
         end
-        hPointer = flipud(hObject.Data(1:2)');
+        hPointer(1) = latAxis(hObject.Data(2));
+        hPointer(2) = axAxis(hObject.Data(1));
         updatePlots;
     end
 
@@ -283,30 +367,34 @@ hMainFigure.Visible = 'on';
         figure(hMainFigure)
         
         %% Render image
-%         axes(hImageAxes)      
-%         hImg = imagesc(renderFunc(matData(:,:,sliceNumber)));
-%         colorbar
-%         set(hImg,'ButtonDownFcn',@ImageClickCallback);
-%         set(hImageAxes,'Color','none');
-        set(hImg1,'CData',renderFunc(matData1(:,:,sliceNumber)));
-        set(hImg2,'CData',renderFunc(matData2(:,:,sliceNumber)));
+        set(hImg1,'CData',renderFunc(matData1(:,:,sliceNumber))...);
+            ...,'YData',axAxis...
+            ...,'XData',latAxis...
+        );
+        set(hImg2,'CData',renderFunc(matData2(:,:,sliceNumber))...);
+            ...,'YData',axAxis...
+            ...,'XData',latAxis...
+        );
+        %set([hUnderlayImg1 hUnderlayImg2],'YData',axAxis,'XData',latAxis);
+        %xlim(hImageAxes1,xLim); ylim(hImageAxes1,yLim);
+        %xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
         
         updateCaxis();
         %% calculate axes
-        [xData, yData, cData1] = getimage(hImageAxes1);
-        [xData, yData, cData2] = getimage(hImageAxes2);
-        dx = diff(xData)/(size(cData1,2)-1);
-        dy = diff(yData)/(size(cData1,1)-1);
-        xAxis = xData(1):dx:xData(2);
-        yAxis = yData(1):dy:yData(2);
-        assert(isequal(length(xAxis),size(cData1,2)),'Error: Bad xAxis length');
-        assert(isequal(length(yAxis),size(cData1,1)),'Error: Bad yAxis length');
-        [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
-        [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
-        set(coordTable,'data',[flipud(hPointer(:))' sliceNumber]);
+        %[xData, yData, cData1] = getimage(hImageAxes1);
+        %[xData, yData, cData2] = getimage(hImageAxes2);
+        %dx = diff(xData)/(size(cData1,2)-1);
+        %dy = diff(yData)/(size(cData1,1)-1);
+        %xAxis = xData(1):dx:xData(2);
+        %yAxis = yData(1):dy:yData(2);
+        %assert(isequal(length(latAxis),size(cData1,2)),'Error: Bad xAxis length');
+        %assert(isequal(length(axAxis),size(cData1,1)),'Error: Bad yAxis length');
+        [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+        [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
+        set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
         switch lineDir
             case 'Vertical'
-                [~,lineNumber] = findClosest(xAxis,hPointer(1));
+                [~,lineNumber] = findClosest(latAxis,hPointer(1));
                 mask = ones(size(matData1(:,:,1))); mask(:,lineNumber)=0;
                 hImg1.AlphaData = mask;
                 hImg2.AlphaData = mask;
@@ -314,12 +402,12 @@ hMainFigure.Visible = 'on';
 %                 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
 %                 plot(yAxis,lineData);
 %                 grid on;
-                set(hLine1,'XData',yAxis,...
+                set(hLine1,'XData',axAxis,...
                     'YData', evalFunc(matData1(:,lineNumber,sliceNumber)));
-                set(hLine2,'XData',yAxis,...
+                set(hLine2,'XData',axAxis,...
                     'YData', evalFunc(matData2(:,lineNumber,sliceNumber)));
             case 'Horizontal'
-                [~,lineNumber] = findClosest(yAxis,hPointer(2));
+                [~,lineNumber] = findClosest(axAxis,hPointer(2));
                 mask = ones(size(matData1(:,:,1))); mask(lineNumber,:)=0;
                 hImg1.AlphaData = mask;
                 hImg2.AlphaData = mask;
@@ -327,30 +415,31 @@ hMainFigure.Visible = 'on';
 %                 lineData = evalFunc(matData1(lineNumber,:,sliceNumber));
 %                 plot(xAxis,lineData);
 %                 grid on;
-                set(hLine1,'XData',xAxis,...
+                set(hLine1,'XData',latAxis,...
                     'YData', evalFunc(matData1(lineNumber,:,sliceNumber)));
-                set(hLine2,'XData',xAxis,...
+                set(hLine2,'XData',latAxis,...
                     'YData', evalFunc(matData2(lineNumber,:,sliceNumber)));
+
             case 'Normal'
-                [~,hPointer(1)] = findClosest(xAxis,hPointer(1));
-                [~,hPointer(2)] = findClosest(yAxis,hPointer(2));
+                [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
+                [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
                 lineNumber = 0;
                 mask = ones(size(matData1(:,:,1))); 
-                mask(:,hPointer(1))=0; mask(hPointer(2),:) = 0;
+                mask(:,ind(1))=0; mask(ind(2),:) = 0;
                 
                 hImg1.AlphaData = mask;
                 hImg2.AlphaData = mask;
 %                 axes(hLineAxes)
-%                 lineData = evalFunc(squeeze(matData1(hPointer(2),hPointer(1),:)));
-%                 plot(1:size(matData1,3),lineData);
+%                 lineData = evalFunc(squeeze(matData1(ind(2),ind(1),:)));
+%                 hLine = plot(frameAxis,lineData);
 %                 hold on
-%                 plot(sliceNumber,lineData(sliceNumber),'ro');
+%                 plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
 %                 hold off
 %                 grid on;
-                set(hLine1,'XData',1:size(matData1,3),...
-                    'YData', evalFunc(squeeze(matData1(hPointer(2),hPointer(1),:))));
-                set(hLine2,'XData',1:size(matData1,3),...
-                    'YData', evalFunc(squeeze(matData2(hPointer(2),hPointer(1),:))));
+                set(hLine1,'XData',frameAxis,...
+                    'YData', evalFunc(squeeze(matData1(ind(2),ind(1),:))));
+                set(hLine2,'XData',frameAxis,...
+                    'YData', evalFunc(squeeze(matData2(ind(2),ind(1),:))));
             
             otherwise 
                 error('Error: Invalid lineDir (%s)',lineDir');

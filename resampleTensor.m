@@ -42,7 +42,7 @@ assert(ceil((size(tensor,dim)-1)*p+length(interpFilt)/q)-filtDelay>=...
     ceil(size(tensor,dim)*p/q),'Filter length check failed.');
 
 %% Permute tensor such that resample dimension is first
-pdim = circshift(1:ndims(tensor),-(dim-1));
+pdim = circshift(1:ndims(tensor),[0 -(dim-1)]);
 tensor=permute(tensor, pdim);
 
 %% Resample

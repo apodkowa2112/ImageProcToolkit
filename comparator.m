@@ -204,6 +204,7 @@ grid on;
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
+set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
 %% Callbacks
     function lineDirButton_callback(hObject,eventdata)

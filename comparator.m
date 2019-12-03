@@ -90,7 +90,7 @@ colormap(hImageAxes2,gray);
 linkaxes([hImageAxes1,hUnderlayAxes1,hImageAxes2, hUnderlayAxes2]);
 hl1 = linkprop([hImageAxes1,hUnderlayAxes1],{'Position'} );
 hl2 = linkprop([hImageAxes2,hUnderlayAxes2],{'Position'} );
-
+% hl3 = linkprop([hImageAxes1 hImageAxes2],{'XLabel'}); % Causes Race condition
 % subplot clobbers axes, so set the position manually
 hLineAxes = subplot(2,2,[3 4]);%axes('Position',[0.13 0.11 0.775 0.15]);
 hLineAxes.Tag = 'hLineAxes';
@@ -455,6 +455,13 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         if any(ismember(directions,lineDir))
             val = mod(find(ismember(directions,lineDir)),length(directions))+1;
             lineDir = directions{val};
+            switch(val)
+                case 1
+                    xlabel(hLineAxes,hImageAxes1.YLabel.String);
+                case 2
+                    xlabel(hLineAxes,hImageAxes1.XLabel.String);
+            end
+                
         else 
             lineDir = 'Vertical';
         end

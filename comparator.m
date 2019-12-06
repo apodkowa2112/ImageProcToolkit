@@ -184,15 +184,15 @@ hImg1 = imagesc(latAxis,axAxis,renderFunc(matData1(:,:,sliceNumber)));
 colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
-title('Left')
+hLeftTitle = title('Left'); hLeftTitle.UserData = hLeftTitle.String;
 
 axes(hImageAxes2)      
 hImg2 = imagesc(renderFunc(matData2(:,:,sliceNumber)));
 colorbar
 set(hImg2,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes2,'Color','none');
-title('Right')
-
+hRightTitle = title('Right'); hRightTitle.UserData = hRightTitle.String;
+set([hLeftTitle hRightTitle],'ButtonDownFcn',@LabelCallback)
 % linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
 
 axes(hLineAxes)
@@ -204,6 +204,7 @@ grid on;
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
+figure(hMainFigure); colormap gray;
 set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
 %% Callbacks
@@ -246,6 +247,30 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             hSliderCallback(hSlider,[]);
         end
 
+    end
+    
+    function LabelCallback(hObject,eventData)
+        prompt = {'Ax. Label'; 'Lat. Label'; 'Left Title'; 'Right Title'};
+        defaults = {hImageAxes1.YLabel.String; ...
+            hImageAxes1.XLabel.String;...
+            hLeftTitle.UserData;
+            hRightTitle.UserData};
+        resp = inputdlg(prompt,'Set Label',1,defaults);
+        hLeftTold = hLeftTitle;
+        hRightTold = hRightTitle;
+        try
+            ylabel(hImageAxes1,resp{1});
+            xlabel(hImageAxes1,resp{2});
+            xlabel(hImageAxes2,resp{2});
+            hLeftTitle.UserData = resp{3};
+            hRightTitle.UserData = resp{4};
+            updatePlots();
+        catch
+            warning('Error processing data. Reverting...')
+            hLeftTitle = hLeftTold;
+            hRightTitle = hRightTold;
+        end
+        
     end
 
     function setAxes_callback(hObject, eventData)
@@ -307,6 +332,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
         
         updatePlots;
+        LabelCallback(hObject,eventData);
     end
 
     function cAxisCallback( objectHandle , eventData )
@@ -449,6 +475,16 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Reset Tags on figure update
         hImageAxes1.Tag = 'hImageAxes1';
         hLineAxes.Tag =  'hLineAxes';
+        
+        % Update titles if necessary
+        try
+            hLeftTitle.String = strrep(hLeftTitle.UserData,'`f`',...
+                sprintf('%1.1f',frameAxis(sliceNumber)));
+            hRightTitle.String = strrep(hRightTitle.UserData,'`f`',...
+                sprintf('%1.1f',frameAxis(sliceNumber)));
+        catch
+            warning('Error updating titles');
+        end
     end
 
     function toggleDirection        
@@ -460,6 +496,8 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                     xlabel(hLineAxes,hImageAxes1.YLabel.String);
                 case 2
                     xlabel(hLineAxes,hImageAxes1.XLabel.String);
+                case 3
+                    xlabel(hLineAxes,'');
             end
                 
         else 

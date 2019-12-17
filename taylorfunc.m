@@ -15,7 +15,7 @@ coeffs = comp_coeffs(nbar,sll);
 
 %% Compute output
     function out_t = eval_taylor(t)
-        out_t = zeros(size(t));
+        out_t = ones(size(t));
         mask = abs(t)<=0.5;
         m = 1:(nbar-1);
         out_t(mask(:)) = 1+...

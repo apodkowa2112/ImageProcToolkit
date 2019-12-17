@@ -342,7 +342,23 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             case 'Auto'
                 cAxisStyle = style;
             case 'Manual'
-                cAxisStyle = style;
+                s = cAxisStyle;
+                try
+                    cAxisStyle = style;
+                    prompt = {'Min:', 'Max:'};
+                    defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
+                    resp=inputdlg(prompt,'Set CAxis',1,defaults);
+                    resp=cellfun(@str2num,resp);
+                    validateattributes(resp,{'numeric'},{});
+                    assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
+                    updateCaxis();
+                    caxis(hImageAxes1,resp(:)');
+                    caxis(hImageAxes2,resp(:)');
+                catch
+                    warning('Error processing cAxisCallback')
+                    cAxisStyle = s;
+                    updateCaxis();
+                end
             case 'Left'
                 cAxisStyle = style;
             case 'Right' 

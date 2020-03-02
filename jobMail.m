@@ -2,7 +2,8 @@ function jobMail(subject,msg)
 % JOBMAIL Send an email at end of job
 % function jobMail(subject,msg)
 
-   email = 'tpodkow2@illinois.edu';
+%    email = 'tpodkow2@illinois.edu';
+    email = '8159544873@vtext.com';
    if ~exist('subject','var')
       subject = 'Matlab Job Done';
    end

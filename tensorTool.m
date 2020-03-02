@@ -147,6 +147,8 @@ hImg = imagesc(latAxis,axAxis,renderFunc(matData(:,:,sliceNumber)));
 colorbar
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes,'Color','none');
+hTitle = title('Data'); hTitle.UserData = hTitle.String;
+set(hTitle,'ButtonDownFcn',@LabelCallback);
 
 fLineUpdate = 1;
 hLine = 0;
@@ -196,6 +198,25 @@ hMainFigure.Visible = 'on';
         end
 
     end
+    
+    function LabelCallback(hObject,eventData)
+        prompt = {'Ax. Label'; 'Lat. Label'; 'Title'};
+        defaults = {hImageAxes.YLabel.String; ...
+            hImageAxes.XLabel.String;...
+            hTitle.UserData};
+        resp = inputdlg(prompt,'Set Label',1,defaults);
+        hTold = hTitle;
+        try
+            ylabel(hImageAxes,resp{1});
+            xlabel(hImageAxes,resp{2});
+            hTitle.UserData = resp{3};
+            updatePlots();
+        catch
+            warning('Error processing data. Reverting...')
+            hTitle = hTold;
+        end
+        
+    end
 
     function setAxes_callback(hObject, eventData)
         prompt = {'Lat. Step'; 'Ax. Step'};
@@ -226,12 +247,12 @@ hMainFigure.Visible = 'on';
         
         % Update axes
         latOld = latAxis;
-        axOld = axAxis;
-        latAxis = (0:(size(matData,2)-1))*resp(1);
-        axAxis  = (0:(size(matData,1)-1))*resp(2);
+        axOld  = axAxis;
+        latAxis = (0:(length(latAxis)-1))*resp(1);
+        axAxis  = (0:(length( axAxis)-1))*resp(2);
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
-            frameAxis = (0:(size(matData,3)-1))*resp(3);
+            frameAxis = (0:(length(frameAxis)-1))*resp(3);
         end
         
         % Rederive limits on old axes
@@ -254,6 +275,7 @@ hMainFigure.Visible = 'on';
         xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
         
         updatePlots;
+        LabelCallback(hObject,eventData);
     end
 
     function cAxisCallback( objectHandle , eventData )
@@ -382,12 +404,28 @@ hMainFigure.Visible = 'on';
         hImageAxes.Tag = 'hImageAxes';
         hLineAxes.Tag =  'hLineAxes';
         axes(hImageAxes); % for easy caxis
+        % Update titles if necessary
+        try
+            hTitle.String = strrep(hTitle.UserData,'`f`',...
+                sprintf('%1.1f',frameAxis(sliceNumber)));
+        catch
+            warning('Error updating titles');
+        end
     end
 
     function toggleDirection        
         if any(ismember(directions,lineDir))
             val = mod(find(ismember(directions,lineDir)),length(directions))+1;
             lineDir = directions{val};
+            switch(val)
+                case 1
+                    xlabel(hLineAxes,hImageAxes.YLabel.String);
+                case 2
+                    xlabel(hLineAxes,hImageAxes.XLabel.String);
+                case 3
+                    xlabel(hLineAxes,'');
+            end
+                
         else 
             lineDir = 'Vertical';
         end

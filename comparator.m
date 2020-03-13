@@ -296,7 +296,15 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             errordlg(msg.message,'Invalid Input!')
             return
         end
-
+        
+        centerLatAxis = questdlg('Center Lat Axis?',...
+            'Center Lat Axis?','Yes','No','Yes');
+        centerLatAxis = isequal(centerLatAxis,'Yes');
+        
+        centerAxAxis  = questdlg('Center Ax Axis?',...
+            'Center Ax Axis?','Yes','No','No');
+        centerAxAxis = isequal(centerAxAxis,'Yes');
+        
         % Update hPointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
@@ -305,7 +313,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         latOld = latAxis;
         axOld  = axAxis;
         latAxis = (0:(length(latAxis)-1))*resp(1);
+        if centerLatAxis; latAxis = latAxis-mean(latAxis([1,end])); end
         axAxis  = (0:(length( axAxis)-1))*resp(2);
+        if centerAxAxis; axAxis = axAxis-mean(axAxis([1,end])); end
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
             frameAxis = (0:(length(frameAxis)-1))*resp(3);

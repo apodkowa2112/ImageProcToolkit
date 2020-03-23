@@ -143,8 +143,11 @@ coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 % hImg
 axes(hImageAxes)   
 hImg = imagesc(latAxis,axAxis,renderFunc(matData(:,:,sliceNumber)));
+colormap gray;
 % linkprop([hImg,hUnderlayImg],{'XData','YData'});
-colorbar
+hColorbar = colorbar;
+colorbar_title = '';
+title(hColorbar,colorbar_title);
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes,'Color','none');
 hTitle = title('Data'); hTitle.UserData = hTitle.String;
@@ -200,20 +203,26 @@ hMainFigure.Visible = 'on';
     end
     
     function LabelCallback(hObject,eventData)
-        prompt = {'Ax. Label'; 'Lat. Label'; 'Title'};
+        prompt = {'Ax. Label'; 'Lat. Label'; 'Title'; 'Colorbar'};
+        cbtitle_old = colorbar_title;
         defaults = {hImageAxes.YLabel.String; ...
             hImageAxes.XLabel.String;...
-            hTitle.UserData};
+            hTitle.UserData;...
+            colorbar_title};
         resp = inputdlg(prompt,'Set Label',1,defaults);
         hTold = hTitle;
         try
             ylabel(hImageAxes,resp{1});
             xlabel(hImageAxes,resp{2});
             hTitle.UserData = resp{3};
+            colorbar_title =resp{4};
+            title(hColorbar,colorbar_title);
             updatePlots();
         catch
             warning('Error processing data. Reverting...')
             hTitle = hTold;
+            colorbar_title = cbtitle_old;
+            title(hColorbar,colorbar_title);
         end
         
     end

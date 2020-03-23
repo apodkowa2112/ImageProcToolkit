@@ -345,15 +345,19 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 s = cAxisStyle;
                 try
                     cAxisStyle = style;
-                    prompt = {'Min:', 'Max:'};
+                    prompt = {'Min:', 'Max:', 'Unit:'};
                     defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
+                    defaults{end+1} = '';
                     resp=inputdlg(prompt,'Set CAxis',1,defaults);
-                    resp=cellfun(@str2num,resp);
+                    titleStr = resp{3};
+                    resp=cellfun(@str2num,resp(1:2));
                     validateattributes(resp,{'numeric'},{});
                     assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
                     updateCaxis();
                     caxis(hImageAxes1,resp(:)');
                     caxis(hImageAxes2,resp(:)');
+                    title(colorbar(hImageAxes1),titleStr);
+                    title(colorbar(hImageAxes2),titleStr);
                 catch
                     warning('Error processing cAxisCallback')
                     cAxisStyle = s;

@@ -171,7 +171,7 @@ coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
 % caxis menu
 cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
-    'String',{'Auto','Left','Right','Max','Max Center','Manual'},...
+    'String',{'Auto','Auto Center','Left','Right','Max','Max Center','Manual'},...
     'Callback',@cAxisCallback,...
     'Tooltip', 'Color Axis', ...
     'Units','normalized',...
@@ -185,6 +185,8 @@ colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
 hLeftTitle = title('Left'); hLeftTitle.UserData = hLeftTitle.String;
+xlabel('Lat. Dist. (mm)');
+ylabel('Depth (mm)');
 
 axes(hImageAxes2)      
 hImg2 = imagesc(renderFunc(matData2(:,:,sliceNumber)));
@@ -194,6 +196,7 @@ set(hImageAxes2,'Color','none');
 hRightTitle = title('Right'); hRightTitle.UserData = hRightTitle.String;
 set([hLeftTitle hRightTitle],'ButtonDownFcn',@LabelCallback)
 % linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
+xlabel(hImageAxes1.XLabel.String);
 
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
@@ -350,6 +353,8 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         style = styles{get(objectHandle, 'Value')};
         switch style
             case 'Auto'
+                cAxisStyle = style;
+            case 'Auto Center'
                 cAxisStyle = style;
             case 'Manual'
                 s = cAxisStyle;
@@ -509,9 +514,11 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Update titles if necessary
         try
             hLeftTitle.String = strrep(hLeftTitle.UserData,'`f`',...
-                sprintf('%1.1f',frameAxis(sliceNumber)));
+                ...sprintf('%1.1e',frameAxis(sliceNumber)));
+                scitex(frameAxis(sliceNumber)));
             hRightTitle.String = strrep(hRightTitle.UserData,'`f`',...
-                sprintf('%1.1f',frameAxis(sliceNumber)));
+                ...sprintf('%1.1e',frameAxis(sliceNumber)));
+                scitex(frameAxis(sliceNumber)));
         catch
             warning('Error updating titles');
         end
@@ -524,10 +531,13 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             switch(val)
                 case 1
                     xlabel(hLineAxes,hImageAxes1.YLabel.String);
+                    title(hLineAxes,'Ax. Cross Section')
                 case 2
                     xlabel(hLineAxes,hImageAxes1.XLabel.String);
+                    title(hLineAxes,'Lat. Cross Section')
                 case 3
                     xlabel(hLineAxes,'');
+                    title('')
             end
                 
         else 
@@ -540,6 +550,11 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Set Clim Mode
         if isequal(cAxisStyle,'Auto')
             set([hImageAxes1 hImageAxes2],'CLimMode','auto')
+            return
+        elseif isequal(cAxisStyle,'Auto Center')
+            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            caxis(hImageAxes1,max(max(abs(renderFunc(matData1(:,:,sliceNumber)))))*[-1 1])
+            caxis(hImageAxes2,max(max(abs(renderFunc(matData2(:,:,sliceNumber)))))*[-1 1])
             return
         elseif isequal(cAxisStyle,'Left')
             set(hImageAxes1,'CLimMode','auto');

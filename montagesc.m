@@ -171,9 +171,3 @@ function addgrid2img( ah, img_dim, grid_dim, opts )
         line([dyx(2)*px, dyx(2)*px]+.5,[0,img_dim(1)]+.5,'linestyle',lstyle,'color',lcolor,'linewidth',lwidth)
     end
 end
-
-
-
-
-
-

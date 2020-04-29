@@ -154,6 +154,19 @@ setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
 setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
 setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
+hackFlag = true;
+if hackFlag
+    hackButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Hack!','units','normalized',...
+    'Callback',@hackityhack_callback);
+    hackButton.Position(2) = dot([1 3.5],makeGifButton.Position([2 4]));
+    hackButton.Position(3)= 1-2*setAxesButton.Position(1);
+
+end
+function hackityhack_callback(hObject,eventdata)
+    keyboard;
+    updatePlots;
+end
 % coordTable
 coordTable = uitable(hToolPanel,...
     'columnName',{'row','col','slice'},...

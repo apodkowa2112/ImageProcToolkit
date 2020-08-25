@@ -154,6 +154,19 @@ setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
 setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
 setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
+hackFlag = true;
+if hackFlag
+    hackButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Hack!','units','normalized',...
+    'Callback',@hackityhack_callback);
+    hackButton.Position(2) = dot([1 3.5],makeGifButton.Position([2 4]));
+    hackButton.Position(3)= 1-2*setAxesButton.Position(1);
+
+end
+function hackityhack_callback(hObject,eventdata)
+    keyboard;
+    updatePlots;
+end
 % coordTable
 coordTable = uitable(hToolPanel,...
     'columnName',{'row','col','slice'},...
@@ -171,7 +184,7 @@ coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
 % caxis menu
 cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
-    'String',{'Auto','Left','Right','Max','Max Center','Manual'},...
+    'String',{'Auto','Auto Center','Left','Right','Max','Max Center','Manual'},...
     'Callback',@cAxisCallback,...
     'Tooltip', 'Color Axis', ...
     'Units','normalized',...
@@ -185,6 +198,8 @@ colorbar
 set(hImg1,'ButtonDownFcn',@ImageClickCallback);
 set(hImageAxes1,'Color','none');
 hLeftTitle = title('Left'); hLeftTitle.UserData = hLeftTitle.String;
+xlabel('Lat. Dist. (mm)');
+ylabel('Depth (mm)');
 
 axes(hImageAxes2)      
 hImg2 = imagesc(renderFunc(matData2(:,:,sliceNumber)));
@@ -194,6 +209,7 @@ set(hImageAxes2,'Color','none');
 hRightTitle = title('Right'); hRightTitle.UserData = hRightTitle.String;
 set([hLeftTitle hRightTitle],'ButtonDownFcn',@LabelCallback)
 % linkprop([hUnderlayImg1 hImg1 hUnderlayImg2 hImg2],{'XData','YData'});
+xlabel(hImageAxes1.XLabel.String);
 
 axes(hLineAxes)
 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
@@ -296,7 +312,15 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             errordlg(msg.message,'Invalid Input!')
             return
         end
-
+        
+        centerLatAxis = questdlg('Center Lat Axis?',...
+            'Center Lat Axis?','Yes','No','Yes');
+        centerLatAxis = isequal(centerLatAxis,'Yes');
+        
+        centerAxAxis  = questdlg('Center Ax Axis?',...
+            'Center Ax Axis?','Yes','No','No');
+        centerAxAxis = isequal(centerAxAxis,'Yes');
+        
         % Update hPointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
@@ -305,7 +329,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         latOld = latAxis;
         axOld  = axAxis;
         latAxis = (0:(length(latAxis)-1))*resp(1);
+        if centerLatAxis; latAxis = latAxis-mean(latAxis([1,end])); end
         axAxis  = (0:(length( axAxis)-1))*resp(2);
+        if centerAxAxis; axAxis = axAxis-mean(axAxis([1,end])); end
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
             frameAxis = (0:(length(frameAxis)-1))*resp(3);
@@ -341,8 +367,30 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         switch style
             case 'Auto'
                 cAxisStyle = style;
-            case 'Manual'
+            case 'Auto Center'
                 cAxisStyle = style;
+            case 'Manual'
+                s = cAxisStyle;
+                try
+                    cAxisStyle = style;
+                    prompt = {'Min:', 'Max:', 'Unit:'};
+                    defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
+                    defaults{end+1} = '';
+                    resp=inputdlg(prompt,'Set CAxis',1,defaults);
+                    titleStr = resp{3};
+                    resp=cellfun(@str2num,resp(1:2));
+                    validateattributes(resp,{'numeric'},{});
+                    assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
+                    updateCaxis();
+                    caxis(hImageAxes1,resp(:)');
+                    caxis(hImageAxes2,resp(:)');
+                    title(colorbar(hImageAxes1),titleStr);
+                    title(colorbar(hImageAxes2),titleStr);
+                catch
+                    warning('Error processing cAxisCallback')
+                    cAxisStyle = s;
+                    updateCaxis();
+                end
             case 'Left'
                 cAxisStyle = style;
             case 'Right' 
@@ -479,9 +527,11 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Update titles if necessary
         try
             hLeftTitle.String = strrep(hLeftTitle.UserData,'`f`',...
-                sprintf('%1.1f',frameAxis(sliceNumber)));
+                ...sprintf('%1.1e',frameAxis(sliceNumber)));
+                scitex(frameAxis(sliceNumber)));
             hRightTitle.String = strrep(hRightTitle.UserData,'`f`',...
-                sprintf('%1.1f',frameAxis(sliceNumber)));
+                ...sprintf('%1.1e',frameAxis(sliceNumber)));
+                scitex(frameAxis(sliceNumber)));
         catch
             warning('Error updating titles');
         end
@@ -494,10 +544,13 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             switch(val)
                 case 1
                     xlabel(hLineAxes,hImageAxes1.YLabel.String);
+                    title(hLineAxes,'Ax. Cross Section')
                 case 2
                     xlabel(hLineAxes,hImageAxes1.XLabel.String);
+                    title(hLineAxes,'Lat. Cross Section')
                 case 3
                     xlabel(hLineAxes,'');
+                    title('')
             end
                 
         else 
@@ -510,6 +563,11 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Set Clim Mode
         if isequal(cAxisStyle,'Auto')
             set([hImageAxes1 hImageAxes2],'CLimMode','auto')
+            return
+        elseif isequal(cAxisStyle,'Auto Center')
+            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            caxis(hImageAxes1,max(max(abs(renderFunc(matData1(:,:,sliceNumber)))))*[-1 1])
+            caxis(hImageAxes2,max(max(abs(renderFunc(matData2(:,:,sliceNumber)))))*[-1 1])
             return
         elseif isequal(cAxisStyle,'Left')
             set(hImageAxes1,'CLimMode','auto');

@@ -46,6 +46,7 @@ pdim = circshift(1:ndims(tensor),[0 -(dim-1)]);
 tensor=permute(tensor, pdim);
 
 %% Resample
+% length(rsTensor) = ceil((length(tensor)-1)*p/q+length(interpFilt)/q)
 rsTensor = upfirdn(tensor(:,:),interpFilt,p,q);
 
 %% Remove trailing and ending zeros
@@ -54,8 +55,6 @@ rsTensor = rsTensor(filtDelay+(1:ceil(p*size(tensor,1)/q)),:);
 %% Reshape tensor and permute data back to original dims
 rsTensor = reshape(rsTensor,[],size(tensor,2),size(tensor,3));
 rsTensor = ipermute(rsTensor,pdim);
-
-
 
 function filt = buildFilter(p,q,~)
     % kaiser windowed LS filter, based on resample's default (R2017b)

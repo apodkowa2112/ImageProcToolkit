@@ -4,5 +4,5 @@ function str = scitex(num)
 
 exponent = floor(log10(abs(num)));
 n = num/10^exponent;
-strSpec = '%1.1f\\cdot10^{%1.0f}';
+strSpec = '%1.1f\\times10^{%1.0f}';
 str = sprintf(strSpec, n, exponent);

@@ -217,6 +217,10 @@ hLine1 = plot(1:size(matData1,1),lineData); hold on;
 hLine2 = plot(1:size(matData1,1),evalFunc(matData2(:,lineNumber,sliceNumber)),'r');
 grid on;
 
+hLegend = legend(hLeftTitle.String, hRightTitle.String);
+
+% Function for updating `f` in title string
+titleRender = @scitex;
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
@@ -280,6 +284,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             xlabel(hImageAxes2,resp{2});
             hLeftTitle.UserData = resp{3};
             hRightTitle.UserData = resp{4};
+            hLegend.String(1:2) = {hLeftTitle.UserData,hRightTitle.UserData};
             updatePlots();
         catch
             warning('Error processing data. Reverting...')
@@ -301,25 +306,37 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         defaults = cellfun(@num2str,defaults,'UniformOutput',false);
         resp = inputdlg(prompt,'Set Axes',1,defaults);
         try 
-            resp=cellfun(@str2num,resp);
+            % I like to live dangerously
+            proc = @(x) evalin('base',x);
+            resp=cellfun(proc,resp,'UniformOutput',false);
         catch msg
             warndlg('Error processing input!')
             return
         end
         try
-            validateattributes(resp,{'numeric'},{'>',0});
+            for i=1:length(resp)
+                if isscalar(resp{i})
+                    validateattributes(resp{i},{'numeric'},{'>',0});
+                elseif isvector(resp{i})
+                    validateattributes(resp{i},{'numeric'},{'increasing'});
+                else 
+                    error('Invalid entry in resp');
+                end
+            end
         catch msg
             errordlg(msg.message,'Invalid Input!')
             return
         end
-        
-        centerLatAxis = questdlg('Center Lat Axis?',...
-            'Center Lat Axis?','Yes','No','Yes');
-        centerLatAxis = isequal(centerLatAxis,'Yes');
-        
-        centerAxAxis  = questdlg('Center Ax Axis?',...
-            'Center Ax Axis?','Yes','No','No');
-        centerAxAxis = isequal(centerAxAxis,'Yes');
+        if isscalar(resp{1})
+            centerLatAxis = questdlg('Center Lat Axis?',...
+                'Center Lat Axis?','Yes','No','Yes');
+            centerLatAxis = isequal(centerLatAxis,'Yes');
+        end
+        if isscalar(resp{2})
+            centerAxAxis  = questdlg('Center Ax Axis?',...
+                'Center Ax Axis?','Yes','No','No');
+            centerAxAxis = isequal(centerAxAxis,'Yes');
+        end
         
         % Update hPointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
@@ -328,13 +345,32 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         % Update axes
         latOld = latAxis;
         axOld  = axAxis;
-        latAxis = (0:(length(latAxis)-1))*resp(1);
-        if centerLatAxis; latAxis = latAxis-mean(latAxis([1,end])); end
-        axAxis  = (0:(length( axAxis)-1))*resp(2);
-        if centerAxAxis; axAxis = axAxis-mean(axAxis([1,end])); end
+        if isvector(resp{1}) && ~isscalar(resp{1})
+            latAxis = resp{1};
+            latAxis = latAxis(:)';
+            assert(isequal(size(latAxis),size(latOld)));
+        else
+            latAxis = (0:(length(latAxis)-1))*resp{1};
+            if centerLatAxis; latAxis = latAxis-mean(latAxis([1,end])); end
+        end
+        if isvector(resp{2}) && ~isscalar(resp{2})
+            axAxis = resp{2};
+            axAxis = axAxis(:)';
+            assert(isequal(size(axAxis),size(axOld)));
+        else
+            axAxis  = (0:(length( axAxis)-1))*resp{2};
+            if centerAxAxis; axAxis = axAxis-mean(axAxis([1,end])); end
+        end
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
-            frameAxis = (0:(length(frameAxis)-1))*resp(3);
+            if isvector(resp{3}) && ~isscalar(resp{3})
+                f = resp{3};
+                f = f(:)';
+                assert(isequal(size(frameAxis),size(f)));
+                frameAxis = f;
+            else
+                frameAxis = (0:(length(frameAxis)-1))*resp{3};
+            end
         end
         
         % Rederive limits on old axes
@@ -528,10 +564,10 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         try
             hLeftTitle.String = strrep(hLeftTitle.UserData,'`f`',...
                 ...sprintf('%1.1e',frameAxis(sliceNumber)));
-                scitex(frameAxis(sliceNumber)));
+                titleRender(frameAxis(sliceNumber)));
             hRightTitle.String = strrep(hRightTitle.UserData,'`f`',...
                 ...sprintf('%1.1e',frameAxis(sliceNumber)));
-                scitex(frameAxis(sliceNumber)));
+                titleRender(frameAxis(sliceNumber)));
         catch
             warning('Error updating titles');
         end

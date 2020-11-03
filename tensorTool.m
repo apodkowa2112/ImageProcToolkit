@@ -20,13 +20,14 @@ switch length(varargin)
         % tensorTool(matData, funcHandle, renderHandle)
         matData = varargin{1};
         lineNumber = 1;
-        lineDir = 'Vertical';        
+        lineDir = 'Vertical';
         renderFunc = varargin{2};
         evalFunc = varargin{3};
     otherwise
-        error('Error: Unsupported Number of Arguments')
+        error('Error: Unsupported Number of Arguments: %1.0f', length(varargin) )
 end
 
+%% Sanity checks
 if ~exist('renderFunc','var') || isempty(renderFunc)
     renderFunc = @(x) x;
 end
@@ -53,19 +54,19 @@ hMainFigure = figure('Name','tensorTool',...
     ,'CloseRequestFcn',@closeUI...
     );%,'Visible','off');
 
-% Generate axes
+% Generate Underlay axes
 hUnderlayAxes = subplot(3,1,[1 2],'parent',hMainFigure);
 set(hUnderlayAxes,'Tag','hUnderlayAxes');
 green = zeros([size(matData,1),size(matData,2),3]); green(:,:,2) =1;
 hUnderlayImg = image(latAxis,axAxis,green);
 
+% Generate image axes
 hImageAxes = axes('Position',get(hUnderlayAxes,'Position'));
-
 hImageAxes.Tag = 'hImageAxes';
 colormap(hImageAxes,gray);
 
 linkaxes([hImageAxes,hUnderlayAxes]);
-linkprop([hImageAxes,hUnderlayAxes],{'Position'} );
+hl = linkprop([hImageAxes,hUnderlayAxes],{'Position'} );
 
 % subplot clobbers axes, so set the position manually
 hLineAxes = axes('Position',[0.13 0.11 0.775 0.15]);
@@ -126,6 +127,19 @@ setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
 setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
 setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
+hackFlag = true;
+if hackFlag
+    hackButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Hack!','units','normalized',...
+    'Callback',@hackityhack_callback);
+    hackButton.Position(2) = dot([1 3.5],makeGifButton.Position([2 4]));
+    hackButton.Position(3)= 1-2*setAxesButton.Position(1);
+
+end
+function hackityhack_callback(hObject,eventdata)
+    keyboard;
+    updatePlots;
+end
 % coordTable
 coordTable = uitable(hToolPanel,...
     'columnName',{'row','col','slice'},...
@@ -153,9 +167,15 @@ set(hImageAxes,'Color','none');
 hTitle = title('Data'); hTitle.UserData = hTitle.String;
 set(hTitle,'ButtonDownFcn',@LabelCallback);
 
-fLineUpdate = 1;
-hLine = 0;
+axes(hLineAxes)
+lineData = evalFunc(matData(:,lineNumber,sliceNumber));
+hLine = plot(1:size(matData,1),lineData); hold on;
+grid on;
 
+fLineUpdate = 1;
+
+% Function for updating `f` in title string
+titleRender = @scitex;
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
@@ -238,18 +258,38 @@ hMainFigure.Visible = 'on';
         defaults = cellfun(@num2str,defaults,'UniformOutput',false);
         resp = inputdlg(prompt,'Set Axes',1,defaults);
         try 
-            resp=cellfun(@str2num,resp);
+            % I like to live dangerously
+            proc = @(x) evalin('base',x);
+            resp=cellfun(proc,resp,'UniformOutput',false);
         catch msg
             warndlg('Error processing input!')
             return
         end
         try
-            validateattributes(resp,{'numeric'},{'>',0});
+            for i=1:length(resp)
+                if isscalar(resp{i})
+                    validateattributes(resp{i},{'numeric'},{'>',0});
+                elseif isvector(resp{i})
+                    validateattributes(resp{i},{'numeric'},{'increasing'});
+                else 
+                    error('Invalid entry in resp');
+                end
+            end
         catch msg
             errordlg(msg.message,'Invalid Input!')
             return
         end
-
+        if isscalar(resp{1})
+            centerLatAxis = questdlg('Center Lat Axis?',...
+                'Center Lat Axis?','Yes','No','Yes');
+            centerLatAxis = isequal(centerLatAxis,'Yes');
+        end
+        if isscalar(resp{2})
+            centerAxAxis  = questdlg('Center Ax Axis?',...
+                'Center Ax Axis?','Yes','No','No');
+            centerAxAxis = isequal(centerAxAxis,'Yes');
+        end
+        
         % Update hPointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
@@ -257,11 +297,32 @@ hMainFigure.Visible = 'on';
         % Update axes
         latOld = latAxis;
         axOld  = axAxis;
-        latAxis = (0:(length(latAxis)-1))*resp(1);
-        axAxis  = (0:(length( axAxis)-1))*resp(2);
+        if isvector(resp{1}) && ~isscalar(resp{1})
+            latAxis = resp{1};
+            latAxis = latAxis(:)';
+            assert(isequal(size(latAxis),size(latOld)));
+        else
+            latAxis = (0:(length(latAxis)-1))*resp{1};
+            if centerLatAxis; latAxis = latAxis-mean(latAxis([1,end])); end
+        end
+        if isvector(resp{2}) && ~isscalar(resp{2})
+            axAxis = resp{2};
+            axAxis = axAxis(:)';
+            assert(isequal(size(axAxis),size(axOld)));
+        else
+            axAxis  = (0:(length( axAxis)-1))*resp{2};
+            if centerAxAxis; axAxis = axAxis-mean(axAxis([1,end])); end
+        end
         hPointer = [latAxis(ind(1)), axAxis(ind(2))];
         if length(directions)==3
-            frameAxis = (0:(length(frameAxis)-1))*resp(3);
+            if isvector(resp{3}) && ~isscalar(resp{3})
+                f = resp{3};
+                f = f(:)';
+                assert(isequal(size(frameAxis),size(f)));
+                frameAxis = f;
+            else
+                frameAxis = (0:(length(frameAxis)-1))*resp{3};
+            end
         end
         
         % Rederive limits on old axes
@@ -293,7 +354,30 @@ hMainFigure.Visible = 'on';
         switch style
             case 'Auto'
                 cAxisStyle = style;
+            case 'Auto Center'
+                cAxisStyle = style;
             case 'Manual'
+                s = cAxisStyle;
+                try
+                    cAxisStyle = style;
+                    prompt = {'Min:', 'Max:', 'Unit:'};
+                    defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
+                    defaults{end+1} = '';
+                    resp=inputdlg(prompt,'Set CAxis',1,defaults);
+                    titleStr = resp{3};
+                    resp=cellfun(@str2num,resp(1:2));
+                    validateattributes(resp,{'numeric'},{});
+                    assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
+                    updateCaxis();
+                    caxis(hImageAxes1,resp(:)');
+                    caxis(hImageAxes2,resp(:)');
+                    title(colorbar(hImageAxes1),titleStr);
+                    title(colorbar(hImageAxes2),titleStr);
+                catch
+                    warning('Error processing cAxisCallback')
+                    cAxisStyle = s;
+                    updateCaxis();
+                end
                 cAxisStyle = style;
             case 'Max' 
                 cAxisStyle = style;
@@ -342,8 +426,6 @@ hMainFigure.Visible = 'on';
         figure(hMainFigure)
         
         %% Render image
-%         yLim=axAxis([1 end])+diff(axAxis(1:2))*[-0.5 0.5];
-%         xLim=latAxis([1 end])+diff(latAxis(1:2))*[-0.5 0.5];
         set(hImg,'CData',renderFunc(matData(:,:,sliceNumber))...
             ...,'YData',axAxis...
             ...,'XData',latAxis...
@@ -365,29 +447,33 @@ hMainFigure.Visible = 'on';
                 [~,lineNumber] = findClosest(latAxis,hPointer(1));
                 mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
                 hImg.AlphaData = mask;
-                axes(hLineAxes)
-                lineData = evalFunc(matData(:,lineNumber,sliceNumber));
-                if fLineUpdate
-                    hLine = plot(axAxis,lineData);
-                    grid on;
-                    fLineUpdate = 0;
-                else % cast to double to avoid bugs with logical datatypes
-                    set(hLine,'YData',double(lineData),'XData',axAxis);
-                end
+%                axes(hLineAxes)
+%                lineData = evalFunc(matData(:,lineNumber,sliceNumber));
+%                if fLineUpdate
+%                    hLine = plot(axAxis,lineData);
+%                    grid on;
+%                    fLineUpdate = 0;
+%                else % cast to double to avoid bugs with logical datatypes
+%                    set(hLine,'YData',double(lineData),'XData',axAxis);
+%                end
+                set(hLine,'XData',axAxis,...
+                    'YData', evalFunc(matData(:,lineNumber,sliceNumber)));
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(axAxis,hPointer(2));
                 mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
                 hImg.AlphaData = mask;
                 axes(hLineAxes)
-                lineData = evalFunc(matData(lineNumber,:,sliceNumber));
-                if fLineUpdate
-                    hLine =  plot(latAxis,lineData);
-                    grid on;
-                    fLineUpdate = 0;
-                else
-                    set(hLine,'YData',double(lineData),'XData',latAxis);                    
-                end
+%                lineData = evalFunc(matData(lineNumber,:,sliceNumber));
+%                if fLineUpdate
+%                    hLine =  plot(latAxis,lineData);
+%                    grid on;
+%                    fLineUpdate = 0;
+%                else
+%                    set(hLine,'YData',double(lineData),'XData',latAxis);                    
+%                end
+                set(hLine,'XData',latAxis,...
+                    'YData', evalFunc(matData(lineNumber,:,sliceNumber)));
                 
             case 'Normal'
                 [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
@@ -397,13 +483,15 @@ hMainFigure.Visible = 'on';
                 mask(:,ind(1))=0; mask(ind(2),:) = 0;
                 
                 hImg.AlphaData = mask;
-                axes(hLineAxes)
-                lineData = evalFunc(squeeze(matData(ind(2),ind(1),:)));
-                hLine = plot(frameAxis,lineData);
-                hold on
-                plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
-                hold off
-                grid on;
+%                axes(hLineAxes)
+%                lineData = evalFunc(squeeze(matData(ind(2),ind(1),:)));
+%                hLine = plot(frameAxis,lineData);
+%                hold on
+%                plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
+%                hold off
+%                grid on;
+                set(hLine,'XData',frameAxis,...
+                    'YData', evalFunc(squeeze(matData(ind(2),ind(1),:))));
             
             otherwise 
                 error('Error: Invalid lineDir (%s)',lineDir');
@@ -416,7 +504,8 @@ hMainFigure.Visible = 'on';
         % Update titles if necessary
         try
             hTitle.String = strrep(hTitle.UserData,'`f`',...
-                sprintf('%1.1f',frameAxis(sliceNumber)));
+                ...sprintf('%1.1e',frameAxis(sliceNumber)));
+                titleRender(frameAxis(sliceNumber)));
         catch
             warning('Error updating titles');
         end
@@ -429,10 +518,13 @@ hMainFigure.Visible = 'on';
             switch(val)
                 case 1
                     xlabel(hLineAxes,hImageAxes.YLabel.String);
+                    title(hLineAxes,'Ax. Cross Section')
                 case 2
                     xlabel(hLineAxes,hImageAxes.XLabel.String);
+                    title(hLineAxes,'Lat. Cross Section')
                 case 3
                     xlabel(hLineAxes,'');
+                    title('');
             end
                 
         else 
@@ -440,6 +532,45 @@ hMainFigure.Visible = 'on';
         end
         lineDirButton.String = lineDir;
         fLineUpdate = 1;
+    end
+    function updateCaxis
+        % Set Clim Mode
+        if isequal(cAxisStyle,'Auto')
+            set(hImageAxes,'CLimMode','auto')
+            return
+        elseif isequal(cAxisStyle,'Auto Center')
+            set(hImageAxes,'CLimMode','manual')
+            caxis(hImageAxes,max(max(abs(renderFunc(matData(:,:,sliceNumber)))))*[-1 1])
+            return
+        else 
+            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            return
+        end
+        %% Get Caxis
+        switch cAxisStyle
+            case 'Max'
+                c_max = max(max(renderFunc(matData(:,:,1))));
+                c_min = min(min(renderFunc(matData(:,:,1))));
+                for k = 1:max(size(matData,3))
+                    c_max = max(c_max,...
+                        max(max([renderFunc(matData(:,:,k))...
+                        ])));
+                    c_min = min(c_min,...
+                        min(min([renderFunc(matData(:,:,k))...
+                        ])));
+                end
+                caxis(hImageAxes,[c_min,c_max]);
+            case 'Max Center'
+                c_max = max(max(abs(renderFunc(matData(:,:,1)))));
+                for k = 1:max(size(matData,3))
+                    c_max = max(c_max,...
+                        max(max(abs([renderFunc(matData(:,:,k))...
+                        ]))));
+                end
+                caxis(hImageAxes,c_max*[-1 1]);
+            otherwise
+                error('Unsupported cAxisStyle: %s',cAxisStyle);
+        end
     end
 
     function [closestMatch,ind] = findClosest(vec,num)

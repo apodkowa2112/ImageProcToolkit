@@ -181,7 +181,6 @@ coordTable.ColumnWidth = {floor(0.95*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
-
 % caxis menu
 cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
     'String',{'Auto','Auto Center','Left','Right','Max','Max Center','Manual'},...

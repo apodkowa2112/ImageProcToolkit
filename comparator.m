@@ -3,6 +3,14 @@ function varargout = comparator(varargin)
 % comparator(matData1, matData2)
 % comparator(matData1, matData2, funcHandle)
 % comparator(matData1, matData2, funcHandle, renderHandle)
+% cb = comparator(...)
+% cb is a struct of callbacks for programmatic setting definitions
+%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes
+%       respectively
+%   cb.setFrameFormat(func) set the formatting of `f` placeholder 
+%       (i.e. func = @(x) sprintf('%1.2f',x));
+%   cb.setLabel(y,x,leftTitle,rightTitle) sets the figure labels
+
 %% Initialization
 switch length(varargin)
     case 2
@@ -105,10 +113,15 @@ hPointer = zeros(1,2);
 hTPfigure = figure('Name','Comparator Tools','Menubar','none',...
     'NumberTitle','off','CloseRequestFcn',@closeUI);
 hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
+hTPfigure.Position(4) = hMainFigure.Position(4) + 50; %50 pixels for menubars
 hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes1.Units;
 % hToolPanel.Position = [0 0 0.2,sum(hImageAxes1.Position([2 4]))-hLineAxes.Position(2)];
 % hToolPanel.Units = hLineAxes.Units;
+
+% Keep hToolPanel locked to hMainFigure
+% https://www.mathworks.com/matlabcentral/answers/391084-continuous-tracking-of-locationchanged-event-of-figure
+hListener = event.listener(hMainFigure, 'LocationChanged', @move_callback);
 
 hLineAxes.Position(3)  = hLineAxes.Position(3);%-1.1*hToolPanel.Position(3);
 axSep = hImageAxes2.Position(1)-hImageAxes1.Position(1)-hImageAxes1.Position(3);
@@ -219,7 +232,21 @@ grid on;
 hLegend = legend(hLeftTitle.String, hRightTitle.String);
 
 % Function for updating `f` in title string
-titleRender = @scitex;
+titleRender = @(x) sprintf('%1.2f',x);
+
+%% Struct for external callbacks for programmatic access
+extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
+extCallbacks.setFrameFormat = @setFrameFormat;
+extCallbacks.setLabel = @setLabel;
+extCallbacks.setDirection = @setDirection;
+extCallbacks.setCoordinate = @setCoordinate;
+extCallbacks.legend = hLegend;
+extCallbacks.Img1 = hImg1;
+extCallbacks.Img2 = hImg2;
+extCallbacks.ax1 = hImageAxes1;
+extCallbacks.ax2 = hImageAxes2;
+extCallbacks.lineAxes = hLineAxes;
+
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
@@ -227,6 +254,13 @@ figure(hMainFigure); colormap gray;
 set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
 %% Callbacks
+    function move_callback(hSource, eventdata)
+        hTPfigure.Position(1) = sum(hMainFigure.Position([1 3]));
+        hTPfigure.Position(2) = hMainFigure.Position(2);
+        figure(hTPfigure)
+        figure(hMainFigure)
+    end
+
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
@@ -268,49 +302,58 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
     end
     
-    function LabelCallback(hObject,eventData)
+    function LabelCallback(hObject,eventData,resp)
         prompt = {'Ax. Label'; 'Lat. Label'; 'Left Title'; 'Right Title'};
         defaults = {hImageAxes1.YLabel.String; ...
             hImageAxes1.XLabel.String;...
             hLeftTitle.UserData;
             hRightTitle.UserData};
         resp = inputdlg(prompt,'Set Label',1,defaults);
+        setLabel(resp{2},resp{1},resp{3},resp{4})
+        
+    end
+    function setLabel(xLabel,yLabel,leftTitle,rightTitle)
         hLeftTold = hLeftTitle;
         hRightTold = hRightTitle;
         try
-            ylabel(hImageAxes1,resp{1});
-            xlabel(hImageAxes1,resp{2});
-            xlabel(hImageAxes2,resp{2});
-            hLeftTitle.UserData = resp{3};
-            hRightTitle.UserData = resp{4};
+            ylabel(hImageAxes1,yLabel);
+            xlabel(hImageAxes1,xLabel);
+            xlabel(hImageAxes2,xLabel);
+            hLeftTitle.UserData = leftTitle;
+            hRightTitle.UserData = rightTitle;
             hLegend.String(1:2) = {hLeftTitle.UserData,hRightTitle.UserData};
             updatePlots();
         catch
             warning('Error processing data. Reverting...')
             hLeftTitle = hLeftTold;
             hRightTitle = hRightTold;
+            updatePlots();
         end
-        
     end
 
-    function setAxes_callback(hObject, eventData)
-        warning('SetAxes not supported yet!')
-        prompt = {'Lat. Step'; 'Ax. Step'};
-        defaults = diff([latAxis(1:2); axAxis(1:2)]')';
-        if length(directions)==3
-            prompt{end+1} = 'Frame Step';
-            defaults(end+1) = diff(frameAxis(1:2));
-        end
-        defaults = num2cell(defaults);
-        defaults = cellfun(@num2str,defaults,'UniformOutput',false);
-        resp = inputdlg(prompt,'Set Axes',1,defaults);
-        try 
-            % I like to live dangerously
-            proc = @(x) evalin('base',x);
-            resp=cellfun(proc,resp,'UniformOutput',false);
-        catch msg
-            warndlg('Error processing input!')
-            return
+    function setAxes_callback(hObject, eventData, resp)
+        % (hObject, eventData) is for standard gui access
+        % (hObject, eventData, resp) is for programmatic access (eventData is empty)
+        updateLabels=false;
+        if ~exist('resp','var') % For programmatic access
+            prompt = {'Lat. Step'; 'Ax. Step'};
+            defaults = diff([latAxis(1:2); axAxis(1:2)]')';
+            if length(directions)==3
+                prompt{end+1} = 'Frame Step';
+                defaults(end+1) = diff(frameAxis(1:2));
+            end
+            defaults = num2cell(defaults);
+            defaults = cellfun(@num2str,defaults,'UniformOutput',false);
+            resp = inputdlg(prompt,'Set Axes',1,defaults);
+            try 
+                % I like to live dangerously
+                proc = @(x) evalin('base',x);
+                resp=cellfun(proc,resp,'UniformOutput',false);
+            catch msg
+                warndlg('Error processing input!')
+                return
+            end
+            updateLabels=true;
         end
         try
             for i=1:length(resp)
@@ -393,7 +436,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
         
         updatePlots;
-        LabelCallback(hObject,eventData);
+        if updateLabels
+            LabelCallback(hObject,eventData);
+        end
     end
 
     function cAxisCallback( objectHandle , eventData )
@@ -461,14 +506,39 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         coordinate = eval(callbackdata.EditData);
         row = callbackdata.Indices(1);
         col = callbackdata.Indices(2);
-        if col==3
-            sliceNumber = min(max(1,round(coordinate)),size(matData1,3));
-            set(hSlider,'Value',sliceNumber);
-        else
-            hObject.Data(row,col) = coordinate;
+        prev = hObject.Data;
+        prev(row,col) = callbackdata.PreviousData;
+        try 
+            if col==3
+                sliceNumber = min(max(1,round(coordinate)),size(matData1,3));
+                set(hSlider,'Value',sliceNumber);
+            end
+            setCoordinate(hObject.Data(1),hObject.Data(2),hObject.Data(3));
+        catch exc
+            setCoordinate(prev(1),prev(2),prev(3));
+            rethrow(exc)
         end
-        hPointer(1) = latAxis(hObject.Data(2));
-        hPointer(2) = axAxis(hObject.Data(1));
+    end
+    function setCoordinate(row,col,slice)
+        oldPointer= hPointer;
+        oldTable = coordTable.Data;
+        try
+            hPointer(1) = latAxis(col);
+            hPointer(2) = axAxis(row);
+            coordTable.Data = [row col slice];
+            sliceNumber = slice;
+            if exist('hSlider','var')
+                set(hSlider,'Value',sliceNumber);
+            end
+        catch exc
+            coordTable.Data = oldTable;
+            hPointer = oldPointer;
+            sliceNumber = oldTable(3);
+            if exist('hSlider','var')
+                set(hSlider,'Value',sliceNumber);
+            end
+            rethrow(exc);
+        end
         updatePlots;
     end
 
@@ -575,23 +645,29 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
     function toggleDirection        
         if any(ismember(directions,lineDir))
             val = mod(find(ismember(directions,lineDir)),length(directions))+1;
-            lineDir = directions{val};
-            switch(val)
-                case 1
+            setDirection(directions{val});
+        else 
+            setDirection('Vertical');
+        end
+        
+    end
+
+    function setDirection(val)
+        assert(ismember(val,directions),'Direction %s invalid.',val);
+                    lineDir = val;
+        switch(val)
+                case directions{1} % Vertical
                     xlabel(hLineAxes,hImageAxes1.YLabel.String);
                     title(hLineAxes,'Ax. Cross Section')
-                case 2
+                case directions{2} % Horizontal
                     xlabel(hLineAxes,hImageAxes1.XLabel.String);
                     title(hLineAxes,'Lat. Cross Section')
-                case 3
+                case directions{3} % Normal
                     xlabel(hLineAxes,'');
                     title('')
-            end
-                
-        else 
-            lineDir = 'Vertical';
         end
         lineDirButton.String = lineDir;
+        
     end
 
     function updateCaxis
@@ -651,5 +727,27 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         closestMatch = vec(ind);
         assert(length(closestMatch)==1,'Multiple matches found')
     end
+    
+    function setFrameFormat(s)
+        old = titleRender;
+        try
+            titleRender=s;
+            updatePlots;
+        catch
+            titleRender=old;
+            updatePlots;
+        end
+    end
+    varargout{1} = extCallbacks;
+
+    %% This function is dangerous.  Use at your own risk
+    function setter(s)
+        warning('Dangerous function. Use at your own risk')
+        eval(s);
+    end
+
+    % Intentional obfuscation here
+    varargout{2} = @setter;
+    
 
 end

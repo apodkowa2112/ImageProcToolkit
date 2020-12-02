@@ -100,6 +100,8 @@ hl1 = linkprop([hImageAxes1,hUnderlayAxes1],{'Position'} );
 hl2 = linkprop([hImageAxes2,hUnderlayAxes2],{'Position'} );
 % hl3 = linkprop([hImageAxes1 hImageAxes2],{'XLabel'}); % Causes Race condition
 % subplot clobbers axes, so set the position manually
+
+figure(hMainFigure); % Needed for programatic interface.  Spawns separate figure otherwise.
 hLineAxes = subplot(2,2,[3 4]);%axes('Position',[0.13 0.11 0.775 0.15]);
 hLineAxes.Tag = 'hLineAxes';
 grid(hLineAxes,'on');
@@ -240,6 +242,8 @@ extCallbacks.setFrameFormat = @setFrameFormat;
 extCallbacks.setLabel = @setLabel;
 extCallbacks.setDirection = @setDirection;
 extCallbacks.setCoordinate = @setCoordinate;
+extCallbacks.setCaxisStyle = @setCaxisStyle;
+extCallbacks.exportGif = @exportGif;
 extCallbacks.legend = hLegend;
 extCallbacks.Img1 = hImg1;
 extCallbacks.Img2 = hImg2;
@@ -276,30 +280,67 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
     end
 
     function makeGif_callback(hObject,eventData)
-        gifName = 'comparison.gif';
-        [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
-        gifName = fullfile(fp,gifName);
+%         gifName = 'comparison.gif';
+%         [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+%         gifName = fullfile(fp,gifName);
+%         makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
+%             @updateGif,@(x) [],hMainFigure);
+%         
+%         while true
+%             val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+%             [val,stat] = str2num(val{1});
+%             if stat && ~isequal(val,0)
+%                 [val_num,val_den] = rat(val,1e-4);
+%                 break;
+%             end
+%         end
+%         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+%             gifName,gifName);
+%         system(cmd);
+%         
+%         msgbox(sprintf('Data stored in %s',gifName));
+%         function updateGif(i)
+%             hSlider.Value = i;
+%             hSliderCallback(hSlider,[]);
+%         end
+        exportGif();
+    end
+    function exportGif(filename,delay)
+        guiFlag = true;
+        msg = @msgbox;
+        if ~exist('filename','var')
+            gifName = 'comparison.gif';
+            [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+            gifName = fullfile(fp,gifName);
+        else
+            gifName = filename;
+        end
         makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
             @updateGif,@(x) [],hMainFigure);
         
-        while true
-            val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
-            [val,stat] = str2num(val{1});
-            if stat && ~isequal(val,0)
-                [val_num,val_den] = rat(val,1e-4);
-                break;
+        if ~exist('delay','var')
+            while true
+                val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+                [val,stat] = str2num(val{1});
+                if stat && ~isequal(val,0)
+                    [val_num,val_den] = rat(val,1e-4);
+                    break;
+                end
             end
+        else
+            [val_num,val_den] = rat(delay,1e-4);
+            guiFlag = false;
+            msg = @disp;
         end
         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
             gifName,gifName);
         system(cmd);
         
-        msgbox(sprintf('Data stored in %s',gifName));
+        msg(sprintf('Data stored in %s',gifName));
         function updateGif(i)
             hSlider.Value = i;
             hSliderCallback(hSlider,[]);
         end
-
     end
     
     function LabelCallback(hObject,eventData,resp)
@@ -444,6 +485,24 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
     function cAxisCallback( objectHandle , eventData )
         styles = get(objectHandle,'String');
         style = styles{get(objectHandle, 'Value')};
+        setCaxisStyle(style);
+    end
+    function setCaxisStyle(s)
+        styles = get(cAxisPopUp,'String');
+        if isequal(class(s),'char') || isequal(class(s),'string')
+            % Set via String
+            if ismember(s,styles)
+                style = s;
+            else 
+                error('Invalid Style %s',s);
+            end
+            val = find(cellfun(@(x) isequal(x,s),styles));
+        else 
+            % Set via Value
+            validateattributes(s,{'numeric'},{'integer','>=',1,'<=',length(styles)})
+            style = styles{s};
+            val = s;
+        end
         switch style
             case 'Auto'
                 cAxisStyle = style;
@@ -481,8 +540,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 cAxisStyle = style;
             otherwise 
                 val = find(cellfun(@(x) isequal(x,cAxisStyle),styles));
-                set(objectHandle,'Value',val);
+                set(cAxisPopUp,'Value',val);
         end
+        set(cAxisPopUp,'Value',val);
         updateCaxis();
     end
 

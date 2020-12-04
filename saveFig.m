@@ -6,7 +6,7 @@ function saveFig(handle,filepath,dst_exts)
     if exist('filepath','var')==0 || isempty(filepath) 
         filepath = sprintf('./%s',handle.Name);
     end
-    if filepath(end)=='/'
+    if exist(filepath,'dir')==7%filepath(end)=='/'
         filepath = fullfile(filepath,handle.Name);
     end
     if exist('dst_exts','var')==0

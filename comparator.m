@@ -305,6 +305,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 %         end
         exportGif();
     end
+
     function exportGif(filename,delay)
         guiFlag = true;
         msg = @msgbox;
@@ -716,15 +717,15 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         assert(ismember(val,directions),'Direction %s invalid.',val);
                     lineDir = val;
         switch(val)
-                case directions{1} % Vertical
-                    xlabel(hLineAxes,hImageAxes1.YLabel.String);
-                    title(hLineAxes,'Ax. Cross Section')
-                case directions{2} % Horizontal
-                    xlabel(hLineAxes,hImageAxes1.XLabel.String);
-                    title(hLineAxes,'Lat. Cross Section')
-                case directions{3} % Normal
-                    xlabel(hLineAxes,'');
-                    title('')
+            case directions{1} % Vertical
+                xlabel(hLineAxes,hImageAxes1.YLabel.String);
+                title(hLineAxes,'Ax. Cross Section')
+            case directions{2} % Horizontal
+                xlabel(hLineAxes,hImageAxes1.XLabel.String);
+                title(hLineAxes,'Lat. Cross Section')
+            case directions{3} % Normal
+                xlabel(hLineAxes,'');
+                title('')
         end
         lineDirButton.String = lineDir;
         
@@ -808,6 +809,5 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
     % Intentional obfuscation here
     varargout{2} = @setter;
-    
 
 end

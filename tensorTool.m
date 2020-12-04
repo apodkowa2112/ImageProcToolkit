@@ -3,6 +3,16 @@ function varargout = tensorTool(varargin)
 % tensorTool(matData)
 % tensorTool(matData, funcHandle)
 % tensorTool(matData, funcHandle, renderHandle)
+% cb = tensorTool(...)
+% cb is a struct of callbacks for programmatic setting definitions
+%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes
+%       respectively
+%   cb.setFrameFormat(func) set the formatting of `f` placeholder 
+%       (i.e. func = @(x) sprintf('%1.2f',x));
+%   cb.setLabel(y,x,leftTitle,rightTitle) sets the figure labels
+%
+% See also comparator
+
 %% Initialization
 switch length(varargin)
     case 1
@@ -68,6 +78,7 @@ colormap(hImageAxes,gray);
 linkaxes([hImageAxes,hUnderlayAxes]);
 hl = linkprop([hImageAxes,hUnderlayAxes],{'Position'} );
 
+figure(hMainFigure); % Needed for programatic interface.  Spawns separate figure otherwise.
 % subplot clobbers axes, so set the position manually
 hLineAxes = axes('Position',[0.13 0.11 0.775 0.15]);
 hLineAxes.Tag = 'hLineAxes';
@@ -82,10 +93,15 @@ hPointer = zeros(1,2);
 hTPfigure = figure('Name','Tensor Tools','Menubar','none',...
     'NumberTitle','off','CloseRequestFcn',@closeUI);
 hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
+hTPfigure.Position(4) = hMainFigure.Position(4) + 50; %50 pixels for menubars
 hToolPanel = uipanel(hTPfigure,'Title','Tools');
 hToolPanel.Units = hImageAxes.Units;
 % hToolPanel.Position = [0 0 0.2,sum(hImageAxes.Position([2 4]))-hLineAxes.Position(2)];
 % hToolPanel.Units = hLineAxes.Units;
+
+% Keep hToolPanel locked to hMainFigure
+% https://www.mathworks.com/matlabcentral/answers/391084-continuous-tracking-of-locationchanged-event-of-figure
+hListener = event.listener(hMainFigure, 'LocationChanged', @move_callback);
 
 hLineAxes.Position(3)  = hLineAxes.Position(3);%-1.1*hToolPanel.Position(3);
 hImageAxes.Position(3) = hLineAxes.Position(3);
@@ -154,6 +170,15 @@ coordTable.ColumnWidth = {floor(0.95*hTPfigure.Position(3)/3)};
 coordTable.Position(4) = coordTable.Extent(4);
 coordTable.Position(2) = coordTable.Position(2)+coordTable.Extent(4)/2;
 
+% caxis menu
+cAxisPopUp = uicontrol(hToolPanel,'Style','popup',...
+    'String',{'Auto','Auto Center','Max','Max Center','Manual'},...
+    'Callback',@cAxisCallback,...
+    'Tooltip', 'Color Axis', ...
+    'Units','normalized',...
+    'Position', [0.05, coordTable.Position(2)-0.175 0.9 0.15]);
+cAxisStyle = 'Auto';
+
 % hImg
 axes(hImageAxes)   
 hImg = imagesc(latAxis,axAxis,renderFunc(matData(:,:,sliceNumber)));
@@ -175,12 +200,34 @@ grid on;
 fLineUpdate = 1;
 
 % Function for updating `f` in title string
-titleRender = @scitex;
+titleRender = @(x) sprintf('%1.2f',x);
+
+%% Struct for external callbacks for programmatic access
+extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
+extCallbacks.setFrameFormat = @setFrameFormat;
+extCallbacks.setLabel = @setLabel;
+extCallbacks.setDirection = @setDirection;
+extCallbacks.setCoordinate = @setCoordinate;
+extCallbacks.setCaxisStyle = @setCaxisStyle;
+extCallbacks.exportGif = @exportGif;
+extCallbacks.Img = hImg;
+extCallbacks.ax = hImageAxes;
+extCallbacks.lineAxes = hLineAxes;
+
 %% Start GUI
 updatePlots;
 hMainFigure.Visible = 'on';
+figure(hMainFigure); colormap gray;
+set(hUnderlayAxes,'XTick',[],'YTick',[])
 
 %% Callbacks
+    function move_callback(hSource, eventdata)
+        hTPfigure.Position(1) = sum(hMainFigure.Position([1 3]));
+        hTPfigure.Position(2) = hMainFigure.Position(2);
+        figure(hTPfigure)
+        figure(hMainFigure)
+    end
+
     function lineDirButton_callback(hObject,eventdata)
        toggleDirection;
        updatePlots;
@@ -196,33 +243,71 @@ hMainFigure.Visible = 'on';
     end
 
     function makeGif_callback(hObject,eventData)
-        gifName = 'animation.gif';
-        [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
-        gifName = fullfile(fp,gifName);
+%         gifName = 'animation.gif';
+%         [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+%         gifName = fullfile(fp,gifName);
+%         makeGif(permute(1:size(matData,3),[1 3 2]),gifName,...
+%             @updateGif,@(x) [],hMainFigure);
+%         
+%         while true
+%             val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+%             [val,stat] = str2num(val{1});
+%             if stat && ~isequal(val,0)
+%                 [val_num,val_den] = rat(val,1e-4);
+%                 break;
+%             end
+%         end
+%         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+%             gifName,gifName);
+%         system(cmd);
+%         
+%         msgbox(sprintf('Data stored in %s',gifName));
+%         function updateGif(i)
+%             hSlider.Value = i;
+%             hSliderCallback(hSlider,[]);
+%         end
+        exportGif();
+    end
+
+    function exportGif(filename,delay)
+        guiFlag = true;
+        msg = @msgbox;
+        if ~exist('filename','var')
+            gifName = 'animation.gif';
+            [gifName,fp] = uiputfile('*.gif','Make Gif',gifName);
+            gifName = fullfile(fp,gifName);
+        else
+            gifName = filename;
+        end
         makeGif(permute(1:size(matData,3),[1 3 2]),gifName,...
             @updateGif,@(x) [],hMainFigure);
         
-        while true
-            val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
-            [val,stat] = str2num(val{1});
-            if stat && ~isequal(val,0)
-                [val_num,val_den] = rat(val,1e-4);
-                break;
+        if ~exist('delay','var')
+            while true
+                val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+                [val,stat] = str2num(val{1});
+                if stat && ~isequal(val,0)
+                    [val_num,val_den] = rat(val,1e-4);
+                    break;
+                end
             end
+        else
+            [val_num,val_den] = rat(delay,1e-4);
+            guiFlag = false;
+            msg = @disp;
         end
         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
             gifName,gifName);
         system(cmd);
         
-        msgbox(sprintf('Data stored in %s',gifName));
+        msg(sprintf('Data stored in %s',gifName));
         function updateGif(i)
             hSlider.Value = i;
             hSliderCallback(hSlider,[]);
         end
-
     end
     
-    function LabelCallback(hObject,eventData)
+    function LabelCallback(hObject,eventData,resp)
         prompt = {'Ax. Label'; 'Lat. Label'; 'Title'; 'Colorbar'};
         cbtitle_old = colorbar_title;
         defaults = {hImageAxes.YLabel.String; ...
@@ -230,12 +315,15 @@ hMainFigure.Visible = 'on';
             hTitle.UserData;...
             colorbar_title};
         resp = inputdlg(prompt,'Set Label',1,defaults);
+        setLabel(resp{2},resp{1},resp{3},resp{4})
+    end
+    function setLabel(xLabel,yLabel,mainTitle,cbTitle)
         hTold = hTitle;
         try
-            ylabel(hImageAxes,resp{1});
-            xlabel(hImageAxes,resp{2});
-            hTitle.UserData = resp{3};
-            colorbar_title =resp{4};
+            ylabel(hImageAxes,yLabel);
+            xlabel(hImageAxes,xLabel);
+            hTitle.UserData = mainTitle;
+            colorbar_title = cbTitle;
             title(hColorbar,colorbar_title);
             updatePlots();
         catch
@@ -243,27 +331,34 @@ hMainFigure.Visible = 'on';
             hTitle = hTold;
             colorbar_title = cbtitle_old;
             title(hColorbar,colorbar_title);
+            updatePlots();
         end
         
     end
 
-    function setAxes_callback(hObject, eventData)
-        prompt = {'Lat. Step'; 'Ax. Step'};
-        defaults = diff([latAxis(1:2); axAxis(1:2)]')';
-        if length(directions)==3
-            prompt{end+1} = 'Frame Step';
-            defaults(end+1) = diff(frameAxis(1:2));
-        end
-        defaults = num2cell(defaults);
-        defaults = cellfun(@num2str,defaults,'UniformOutput',false);
-        resp = inputdlg(prompt,'Set Axes',1,defaults);
-        try 
-            % I like to live dangerously
-            proc = @(x) evalin('base',x);
-            resp=cellfun(proc,resp,'UniformOutput',false);
-        catch msg
-            warndlg('Error processing input!')
-            return
+    function setAxes_callback(hObject, eventData, resp)
+        % (hObject, eventData) is for standard gui access
+        % (hObject, eventData, resp) is for programmatic access (eventData is empty)
+        updateLabels=false;
+        if ~exist('resp','var') % For programmatic access
+            prompt = {'Lat. Step'; 'Ax. Step'};
+            defaults = diff([latAxis(1:2); axAxis(1:2)]')';
+            if length(directions)==3
+                prompt{end+1} = 'Frame Step';
+                defaults(end+1) = diff(frameAxis(1:2));
+            end
+            defaults = num2cell(defaults);
+            defaults = cellfun(@num2str,defaults,'UniformOutput',false);
+            resp = inputdlg(prompt,'Set Axes',1,defaults);
+            try 
+                % I like to live dangerously
+                proc = @(x) evalin('base',x);
+                resp=cellfun(proc,resp,'UniformOutput',false);
+            catch msg
+                warndlg('Error processing input!')
+                return
+            end
+            updateLabels=true;
         end
         try
             for i=1:length(resp)
@@ -345,12 +440,32 @@ hMainFigure.Visible = 'on';
         xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
         
         updatePlots;
-        LabelCallback(hObject,eventData);
+        if updateLabels
+            LabelCallback(hObject,eventData);
+        end
     end
 
     function cAxisCallback( objectHandle , eventData )
         styles = get(objectHandle,'String');
         style = styles{get(objectHandle, 'Value')};
+        setCaxisStyle(style);
+    end
+    function setCaxisStyle(s)
+        styles = get(cAxisPopUp,'String');
+        if isequal(class(s),'char') || isequal(class(s),'string')
+            % Set via String
+            if ismember(s,styles)
+                style = s;
+            else 
+                error('Invalid Style %s',s);
+            end
+            val = find(cellfun(@(x) isequal(x,s),styles));
+        else 
+            % Set via Value
+            validateattributes(s,{'numeric'},{'integer','>=',1,'<=',length(styles)})
+            style = styles{s};
+            val = s;
+        end
         switch style
             case 'Auto'
                 cAxisStyle = style;
@@ -385,8 +500,9 @@ hMainFigure.Visible = 'on';
                 cAxisStyle = style;
             otherwise 
                 val = find(cellfun(@(x) isequal(x,cAxisStyle),styles));
-                set(objectHandle,'Value',val);
+                set(cAxisPopUp,'Value',val);
         end
+        set(cAxisPopUp,'Value',val);
         updateCaxis();
     end
 
@@ -410,14 +526,39 @@ hMainFigure.Visible = 'on';
         coordinate = eval(callbackdata.EditData);
         row = callbackdata.Indices(1);
         col = callbackdata.Indices(2);
-        if col==3
-            sliceNumber = min(max(1,round(coordinate)),size(matData,3));
-            set(hSlider,'Value',sliceNumber);
-        else
-            hObject.Data(row,col) = coordinate;
+        prev = hObject.Data;
+        prev(row,col) = callbackdata.PreviousData;
+        try 
+            if col==3
+                sliceNumber = min(max(1,round(coordinate)),size(matData,3));
+                set(hSlider,'Value',sliceNumber);
+            end
+            setCoordinate(hObject.Data(1),hObject.Data(2),hObject.Data(3));
+        catch exc
+            setCoordinate(prev(1),prev(2),prev(3));
+            rethrow(exc)
         end
-        hPointer(1) = latAxis(hObject.Data(2));
-        hPointer(2) = axAxis(hObject.Data(1));
+    end
+    function setCoordinate(row,col,slice)
+        oldPointer= hPointer;
+        oldTable = coordTable.Data;
+        try
+            hPointer(1) = latAxis(col);
+            hPointer(2) = axAxis(row);
+            coordTable.Data = [row col slice];
+            sliceNumber = slice;
+            if exist('hSlider','var')
+                set(hSlider,'Value',sliceNumber);
+            end
+        catch exc
+            coordTable.Data = oldTable;
+            hPointer = oldPointer;
+            sliceNumber = oldTable(3);
+            if exist('hSlider','var')
+                set(hSlider,'Value',sliceNumber);
+            end
+            rethrow(exc);
+        end
         updatePlots;
     end
 
@@ -430,9 +571,10 @@ hMainFigure.Visible = 'on';
             ...,'YData',axAxis...
             ...,'XData',latAxis...
         );
-%         set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
-%         xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
+         %set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
+         %xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
         
+        updateCaxis();
         %% calculate axes
 %         [xData, yData, cData] = getimage(hImageAxes);
 %         dx = diff(xData)/(size(cData,2)-1);
@@ -514,25 +656,31 @@ hMainFigure.Visible = 'on';
     function toggleDirection        
         if any(ismember(directions,lineDir))
             val = mod(find(ismember(directions,lineDir)),length(directions))+1;
-            lineDir = directions{val};
-            switch(val)
-                case 1
-                    xlabel(hLineAxes,hImageAxes.YLabel.String);
-                    title(hLineAxes,'Ax. Cross Section')
-                case 2
-                    xlabel(hLineAxes,hImageAxes.XLabel.String);
-                    title(hLineAxes,'Lat. Cross Section')
-                case 3
-                    xlabel(hLineAxes,'');
-                    title('');
-            end
-                
+            setDirection(directions{val});
         else 
-            lineDir = 'Vertical';
+            setDirection('Vertical');
+        end
+        
+    end
+
+    function setDirection(val)
+        assert(ismember(val,directions),'Direction %s invalid.',val);
+                    lineDir = val;
+        switch(val)
+            case directions{1} % Vertical
+                xlabel(hLineAxes,hImageAxes.YLabel.String);
+                title(hLineAxes,'Ax. Cross Section')
+            case directions{2} % Horizontal
+                xlabel(hLineAxes,hImageAxes.XLabel.String);
+                title(hLineAxes,'Lat. Cross Section')
+            case directions{3} % Normal
+                xlabel(hLineAxes,'');
+                title('');
         end
         lineDirButton.String = lineDir;
         fLineUpdate = 1;
     end
+
     function updateCaxis
         % Set Clim Mode
         if isequal(cAxisStyle,'Auto')
@@ -543,7 +691,7 @@ hMainFigure.Visible = 'on';
             caxis(hImageAxes,max(max(abs(renderFunc(matData(:,:,sliceNumber)))))*[-1 1])
             return
         else 
-            set([hImageAxes1 hImageAxes2],'CLimMode','manual')
+            set(hImageAxes,'CLimMode','manual')
             return
         end
         %% Get Caxis
@@ -579,5 +727,26 @@ hMainFigure.Visible = 'on';
         closestMatch = vec(ind);
         assert(length(closestMatch)==1,'Multiple matches found')
     end
+    
+    function setFrameFormat(s)
+        old = titleRender;
+        try
+            titleRender=s;
+            updatePlots;
+        catch
+            titleRender=old;
+            updatePlots;
+        end
+    end
+    varargout{1} = extCallbacks;
+
+    %% This function is dangerous.  Use at your own risk
+    function setter(s)
+        warning('Dangerous function. Use at your own risk')
+        eval(s);
+    end
+
+    % Intentional obfuscation here
+    varargout{2} = @setter;
 
 end

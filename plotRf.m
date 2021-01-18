@@ -4,5 +4,5 @@ function plotRf(in)
     for i=1:size(in,2)
         in(:,i) = in(:,i) + (i-1)*sf;
     end
-    plot(in)
+    plot(in,'bo-')
 end

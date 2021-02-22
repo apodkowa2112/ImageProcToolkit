@@ -62,6 +62,16 @@ if size(matData2,3) == 1
     matData2 = repmat(matData2,1,1,size(matData1,3));
 end
 
+if isequal(class(matData1),'logical')
+    % Logical datatypes cause updatePlots to crash
+    matData1 = single(matData1);
+end
+
+if isequal(class(matData2),'logical')
+    matData2 = single(matData2);
+end
+
+
 assert(isequal(size(matData1),size(matData2)),'Data matrices have different sizes');
 
 latAxis = 1:size(matData1,2);
@@ -112,7 +122,8 @@ hPointer = zeros(1,2);
 %% Component initialization
 
 % hToolPanel
-hTPfigure = figure('Name','Comparator Tools','Menubar','none',...
+hTPfigure = figure(100+hMainFigure.Number);
+set(hTPfigure,'Name','Comparator Tools','Menubar','none',...
     'NumberTitle','off','CloseRequestFcn',@closeUI);
 hTPfigure.Position([1 3]) = [1.05*sum(hMainFigure.Position([1 3])) 0.3*hMainFigure.Position(3)];
 hTPfigure.Position(4) = hMainFigure.Position(4) + 50; %50 pixels for menubars

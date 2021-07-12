@@ -24,6 +24,7 @@ function saveFig(handle,filepath,dst_exts)
             delete(f);
         end
         saveas(handle,f);
+        fprintf('Figure saved to %s\n',f)
     end
     
 end

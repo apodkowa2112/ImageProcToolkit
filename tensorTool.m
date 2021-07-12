@@ -213,6 +213,7 @@ extCallbacks.exportGif = @exportGif;
 extCallbacks.Img = hImg;
 extCallbacks.ax = hImageAxes;
 extCallbacks.lineAxes = hLineAxes;
+extCallbacks.titleRender = titleRender;
 
 %% Start GUI
 updatePlots;

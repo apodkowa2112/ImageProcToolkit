@@ -320,6 +320,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
     end
     function setLabel(xLabel,yLabel,mainTitle,cbTitle)
         hTold = hTitle;
+        cbtitle_old = colorbar_title;
         try
             ylabel(hImageAxes,yLabel);
             xlabel(hImageAxes,xLabel);
@@ -327,12 +328,13 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             colorbar_title = cbTitle;
             title(hColorbar,colorbar_title);
             updatePlots();
-        catch
+        catch exc
             warning('Error processing data. Reverting...')
             hTitle = hTold;
             colorbar_title = cbtitle_old;
             title(hColorbar,colorbar_title);
             updatePlots();
+            throw(exc)
         end
         
     end

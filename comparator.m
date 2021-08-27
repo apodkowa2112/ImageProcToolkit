@@ -255,6 +255,7 @@ extCallbacks.setDirection = @setDirection;
 extCallbacks.setCoordinate = @setCoordinate;
 extCallbacks.setCaxisStyle = @setCaxisStyle;
 extCallbacks.exportGif = @exportGif;
+extCallbacks.updatePlots = @updatePlots;
 extCallbacks.legend = hLegend;
 extCallbacks.Img1 = hImg1;
 extCallbacks.Img2 = hImg2;
@@ -327,26 +328,37 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         else
             gifName = filename;
         end
-        makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
-            @updateGif,@(x) [],hMainFigure);
-        
         if ~exist('delay','var')
             while true
                 val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
                 [val,stat] = str2num(val{1});
                 if stat && ~isequal(val,0)
-                    [val_num,val_den] = rat(val,1e-4);
+%                     [val_num,val_den] = rat(val,1e-4);
+                    delay = val;
                     break;
                 end
             end
-        else
-            [val_num,val_den] = rat(delay,1e-4);
-            guiFlag = false;
-            msg = @disp;
         end
-        cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
-            gifName,gifName);
-        system(cmd);
+        makeGif(permute(1:size(matData1,3),[1 3 2]),gifName,...
+            @updateGif,@(x) [],hMainFigure,delay);
+        
+%         if ~exist('delay','var')
+%             while true
+%                 val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+%                 [val,stat] = str2num(val{1});
+%                 if stat && ~isequal(val,0)
+%                     [val_num,val_den] = rat(val,1e-4);
+%                     break;
+%                 end
+%             end
+%         else
+%             [val_num,val_den] = rat(delay,1e-4);
+%             guiFlag = false;
+%             msg = @disp;
+%         end
+%         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
+%             gifName,gifName);
+%         system(cmd);
         
         msg(sprintf('Data stored in %s',gifName));
         function updateGif(i)

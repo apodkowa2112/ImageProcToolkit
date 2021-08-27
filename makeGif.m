@@ -1,4 +1,4 @@
-function makeGif(data, outfile, renderFunc,titleFunc,figHandle)
+function makeGif(data, outfile, renderFunc,titleFunc,figHandle,delay)
 % MAKEGIF Makes a gif of the data
 % Loops over last dimension of data
 % Supported Syntaxes
@@ -27,6 +27,10 @@ end
 if ~exist('titleFunc','var')
     titleFunc = @(f) [];
 end
+
+if ~exist('delay','var')
+    delay=1;
+end
 %% 
 numFrames = size(data,ndims(data));
 
@@ -50,9 +54,9 @@ for f=1:numFrames
  
     % On the first loop, create the file. In subsequent loops, append.
     if f==1
-        imwrite(imind,cm,outfile,'gif','DelayTime',1,'loopcount',inf);
+        imwrite(imind,cm,outfile,'gif','DelayTime',delay,'loopcount',inf);
     else
-        imwrite(imind,cm,outfile,'gif','DelayTime',1,'writemode','append');
+        imwrite(imind,cm,outfile,'gif','DelayTime',delay,'writemode','append');
     end
  
 end

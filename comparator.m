@@ -13,6 +13,11 @@ function varargout = comparator(varargin)
 
 %% Initialization
 switch length(varargin)
+    case 0
+        matData1 = randn(5,6,7);
+        matData2 = randn(size(matData1));
+        lineNumber = 1;
+        lineDir = 'Vertical';
     case 2
         % comparator(matData1, matData2)
         matData1 = varargin{1};
@@ -180,13 +185,20 @@ setAxesButton = uicontrol(hToolPanel,'Style','pushbutton',...
 setAxesButton.Position(2) = dot([1 1.5],makeGifButton.Position([2 4]));
 setAxesButton.Position(3)= 1-2*setAxesButton.Position(1);
 
+% ComparativeStatsButton
+compStatsButton = uicontrol(hToolPanel,'Style','pushbutton',...
+    'String','Comp. Stats','units','normalized','Callback',@compStats_callback);
+compStatsButton.Position(2) = dot([1 1.5],setAxesButton.Position([2 4]));
+compStatsButton.Position(3)= 1-2*compStatsButton.Position(1);
+
+
 hackFlag = true;
 if hackFlag
     hackButton = uicontrol(hToolPanel,'Style','pushbutton',...
     'String','Hack!','units','normalized',...
     'Callback',@hackityhack_callback);
-    hackButton.Position(2) = dot([1 3.5],makeGifButton.Position([2 4]));
-    hackButton.Position(3)= 1-2*setAxesButton.Position(1);
+    hackButton.Position(2) = dot([1 1.5],compStatsButton.Position([2 4]));
+    hackButton.Position(3)= 1-2*compStatsButton.Position(1);
 
 end
 function hackityhack_callback(hObject,eventdata)
@@ -506,6 +518,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         end
     end
 
+    function compStats_callback(hObj, evnt)
+        warning('Work in Progress');
+    end
     function cAxisCallback( objectHandle , eventData )
         styles = get(objectHandle,'String');
         style = styles{get(objectHandle, 'Value')};
@@ -709,6 +724,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 error('Error: Invalid lineDir (%s)',lineDir');
         end
         
+        % Update Statistics
+        updateStats();
+        
         % Reset Tags on figure update
         hImageAxes1.Tag = 'hImageAxes1';
         hLineAxes.Tag =  'hLineAxes';
@@ -805,6 +823,10 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         end
     end
 
+    function updateStats()
+        % If stats window is visible update, otherwise skip
+        
+    end
     function [closestMatch,ind] = findClosest(vec,num)
         optFun = abs(vec-num);
         [~,ind] = min(optFun);

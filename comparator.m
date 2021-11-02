@@ -52,7 +52,11 @@ if ~exist('evalFunc','var') || isempty(evalFunc)
     evalFunc = @(x) x;
 end
 assert(nargin(evalFunc)==1,'Only one argument to evalFunc supported.');
-        
+
+% Collapse dimensions
+matData1 = matData1(:,:,:);
+matData2 = matData2(:,:,:);
+
 sliceNumber = 1;
 lineData = 0;
 directions = {'Vertical','Horizontal'};
@@ -75,7 +79,6 @@ end
 if isequal(class(matData2),'logical')
     matData2 = single(matData2);
 end
-
 
 assert(isequal(size(matData1),size(matData2)),'Data matrices have different sizes');
 

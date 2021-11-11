@@ -59,9 +59,13 @@ set(handles.disp_theta,'String',0);
 
 img_moving = varargin{1};
 img_static = varargin{2};
+handles.render = @(x) x;
+if length(varargin)>2
+    handles.render = varargin{3};
+end
 
 axes(handles.img_axes); 
-imshowpair(img_static,img_moving);
+imshowpair(handles.render(img_static),handles.render(img_moving));
 
 % Update handles structure
 guidata(hObject, handles);
@@ -96,7 +100,7 @@ axes(handles.img_axes);
 disp_method = get(handles.disp_opt_diff,'Value');
 switch disp_method
     case{0}, % Blend option
-        imshowpair(img_static,img_translated);
+        imshowpair(handles.render(img_static),handles.render(img_translated));
     case{1}, % Diff image
         imshowpair(img_static,img_translated,'diff');
 end
@@ -114,7 +118,7 @@ axes(handles.img_axes);
 disp_method = get(handles.disp_opt_diff,'Value');
 switch disp_method
     case{0}, % Blend option
-        imshowpair(img_static,img_translated);
+        imshowpair(handles.render(img_static),handles.render(img_translated));
     case{1}, % Diff image
         imshowpair(img_static,img_translated,'diff');
 end
@@ -247,7 +251,7 @@ global img_translated
 disp_method = get(handles.disp_opt_diff,'Value');
 switch disp_method
     case{0}, % Blend option
-        imshowpair(img_static,img_translated);
+        imshowpair(handles.render(img_static),handles.render(img_translated));
     case{1}, % Diff image
         imshowpair(img_static,img_translated,'diff');
 end

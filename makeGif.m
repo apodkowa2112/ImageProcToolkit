@@ -24,12 +24,23 @@ if ~exist('figHandle','var')
     figHandle = gcf;
 end
 
+if ~exist('renderFunc','var')
+    renderFunc = @(x) imagesc(x);
+end
 if ~exist('titleFunc','var')
     titleFunc = @(f) [];
 end
 
 if ~exist('delay','var')
     delay=1;
+end
+if isequal(lower(outfile(end-3:end)),'.avi')
+    writer = VideoWriter(outfile);
+    writer.FrameRate=1/delay;
+    open(writer);
+    doVideo=true;
+else
+    doVideo=false;
 end
 %% 
 numFrames = size(data,ndims(data));
@@ -38,7 +49,7 @@ numFrames = size(data,ndims(data));
 figHandle = figure(figHandle);
 set(figHandle,'Color',ones(3,1));
 
-
+try
 for f=1:numFrames
  
     %% plotting kernel
@@ -49,16 +60,25 @@ for f=1:numFrames
     % set(gcf,'color','w'); % set figure background to white
     drawnow;
     frame = getframe(figHandle);
-    im = frame2im(frame);
-    [imind,cm] = rgb2ind(im,256);
- 
-    % On the first loop, create the file. In subsequent loops, append.
-    if f==1
-        imwrite(imind,cm,outfile,'gif','DelayTime',delay,'loopcount',inf);
-    else
-        imwrite(imind,cm,outfile,'gif','DelayTime',delay,'writemode','append');
-    end
- 
-end
+    if ~doVideo
+        im = frame2im(frame);
+        [imind,cm] = rgb2ind(im,256);
 
+        % On the first loop, create the file. In subsequent loops, append.
+        if f==1
+            imwrite(imind,cm,outfile,'gif','DelayTime',delay,'loopcount',inf);
+        else
+            imwrite(imind,cm,outfile,'gif','DelayTime',delay,'writemode','append');
+        end
+    else
+        writeVideo(writer,frame);
+    end
+
+end
+catch exc
+    if doVideo
+        close(writer)
+    end
+    throw(exc)
+end
 end

@@ -280,15 +280,12 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
         else
             gifName = filename;
         end
-        makeGif(permute(1:size(matData,3),[1 3 2]),gifName,...
-            @updateGif,@(x) [],hMainFigure);
-        
         if ~exist('delay','var')
             while true
-                val = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
-                [val,stat] = str2num(val{1});
-                if stat && ~isequal(val,0)
-                    [val_num,val_den] = rat(val,1e-4);
+                delay = inputdlg('Frame Delay:','Enter Frame Delay',1,{'1/2'});
+                [delay,stat] = str2num(delay{1});
+                if stat && ~isequal(delay,0)
+                    [val_num,val_den] = rat(delay,1e-4);
                     break;
                 end
             end
@@ -297,6 +294,9 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             guiFlag = false;
             msg = @disp;
         end
+        makeGif(permute(1:size(matData,3),[1 3 2]),gifName,...
+            @updateGif,@(x) [],hMainFigure,delay);
+        
         cmd = sprintf('convert -delay %1.0fx%1.0f %s %s',val_num,val_den,...
             gifName,gifName);
         system(cmd);
@@ -318,6 +318,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
         resp = inputdlg(prompt,'Set Label',1,defaults);
         setLabel(resp{2},resp{1},resp{3},resp{4})
     end
+
     function setLabel(xLabel,yLabel,mainTitle,cbTitle)
         hTold = hTitle;
         cbtitle_old = colorbar_title;
@@ -453,7 +454,8 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
         style = styles{get(objectHandle, 'Value')};
         setCaxisStyle(style);
     end
-    function setCaxisStyle(s)
+
+    function setCaxisStyle(s,dynRange)
         styles = get(cAxisPopUp,'String');
         if isequal(class(s),'char') || isequal(class(s),'string')
             % Set via String
@@ -478,17 +480,23 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 s = cAxisStyle;
                 try
                     cAxisStyle = style;
-                    prompt = {'Min:', 'Max:', 'Unit:'};
-                    defaults = compose('%1.1f',get(hImageAxes,'CLim'));
-                    defaults{end+1} = '';
-                    resp=inputdlg(prompt,'Set CAxis',1,defaults);
-                    titleStr = resp{3};
-                    resp=cellfun(@str2num,resp(1:2));
-                    validateattributes(resp,{'numeric'},{});
-                    assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
+                    if exist('dynRange','var')
+                        resp = dynRange;
+                    else
+                        prompt = {'Min:', 'Max:', 'Unit:'};
+                        defaults = compose('%1.1f',get(hImageAxes,'CLim'));
+                        defaults{end+1} = '';
+                        resp=inputdlg(prompt,'Set CAxis',1,defaults);
+                        titleStr = resp{3};
+                        dynRange=cellfun(@str2num,resp(1:2));
+                    end
+                    validateattributes(dynRange,{'numeric'},{});
+                    assert(dynRange(2)>dynRange(1),'Invalid CLim: Reverting...');
                     updateCaxis();
-                    caxis(hImageAxes,resp(:)');
-                    title(colorbar(hImageAxes),titleStr);
+                    caxis(hImageAxes,dynRange(:)');
+                    if exist('titleStr','var')
+                        title(colorbar(hImageAxes),titleStr);
+                    end
                 catch
                     warning('Error processing cAxisCallback')
                     cAxisStyle = s;
@@ -540,6 +548,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             rethrow(exc)
         end
     end
+
     function setCoordinate(row,col,slice)
         oldPointer= hPointer;
         oldTable = coordTable.Data;

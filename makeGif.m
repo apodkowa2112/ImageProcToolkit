@@ -4,6 +4,7 @@ function makeGif(data, outfile, renderFunc,titleFunc,figHandle,delay)
 % Supported Syntaxes
 % function makeGif(data, outfile, renderFunc,titleFunc,)
 % function makeGif(data, outfile, renderFunc,titleFunc,figHandle)
+% function makeGif(data, outfile, renderFunc,titleFunc,figHandle,delay)
 % Example titleFunc:
 %titleFunc = @(f)...
 %    title(sprintf('Reg. Param: %1.1e',...

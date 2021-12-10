@@ -188,6 +188,7 @@ hColorbar = colorbar;
 colorbar_title = '';
 title(hColorbar,colorbar_title);
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
+set(hImg,'Interpolation','bilinear');
 set(hImageAxes,'Color','none');
 hTitle = title('Data'); hTitle.UserData = hTitle.String;
 set(hTitle,'ButtonDownFcn',@LabelCallback);

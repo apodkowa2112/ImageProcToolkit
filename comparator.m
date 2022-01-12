@@ -393,6 +393,8 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         
     end
     function setLabel(xLabel,yLabel,leftTitle,rightTitle)
+        % SETLABEL Sets the labels of the images
+        % setLabel(xLabel,yLabel,leftTitle,rightTitle)
         hLeftTold = hLeftTitle;
         hRightTold = hRightTitle;
         try
@@ -529,7 +531,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         style = styles{get(objectHandle, 'Value')};
         setCaxisStyle(style);
     end
-    function setCaxisStyle(s)
+    function setCaxisStyle(s,clim1,clim2)
         styles = get(cAxisPopUp,'String');
         if isequal(class(s),'char') || isequal(class(s),'string')
             % Set via String
@@ -554,19 +556,28 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 s = cAxisStyle;
                 try
                     cAxisStyle = style;
-                    prompt = {'Min:', 'Max:', 'Unit:'};
-                    defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
-                    defaults{end+1} = '';
-                    resp=inputdlg(prompt,'Set CAxis',1,defaults);
-                    titleStr = resp{3};
-                    resp=cellfun(@str2num,resp(1:2));
-                    validateattributes(resp,{'numeric'},{});
-                    assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
-                    updateCaxis();
-                    caxis(hImageAxes1,resp(:)');
-                    caxis(hImageAxes2,resp(:)');
-                    title(colorbar(hImageAxes1),titleStr);
-                    title(colorbar(hImageAxes2),titleStr);
+                    if nargin==1
+                        prompt = {'Min:', 'Max:', 'Unit:'};
+                        defaults = compose('%1.1f',get(hImageAxes1,'CLim'));
+                        defaults{end+1} = '';
+                        resp=inputdlg(prompt,'Set CAxis',1,defaults);
+                        titleStr = resp{3};
+                        resp=cellfun(@str2num,resp(1:2));
+                        validateattributes(resp,{'numeric'},{});
+                        assert(resp(2)>resp(1),'Invalid CLim: Reverting...');
+                        updateCaxis();
+                        caxis(hImageAxes1,resp(:)');
+                        caxis(hImageAxes2,resp(:)');
+                        title(colorbar(hImageAxes1),titleStr);
+                        title(colorbar(hImageAxes2),titleStr);
+                    elseif nargin > 1
+                        if nargin==2
+                            clim2 = clim1;
+                        end
+                        caxis(hImageAxes1,clim1)
+                        caxis(hImageAxes2,clim2)
+                        updateCaxis();
+                    end
                 catch
                     warning('Error processing cAxisCallback')
                     cAxisStyle = s;

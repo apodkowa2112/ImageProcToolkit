@@ -525,6 +525,21 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
 
     function compStats_callback(hObj, evnt)
         warning('Work in Progress');
+        fprintf('Left\tMin\tMax\tMean\tStd\n')
+        fprintf('\t%1.4e,%1.4e,%1.4e,%1.4e\n',...
+            min(matData1(:)),max(matData1(:)),...
+            mean(matData1(:)),std(matData1(:)))
+        
+        fprintf('Right\tMin\tMax\tMean\tStd\n');
+        fprintf('\t%1.4e,%1.4e,%1.4e,%1.4e\n',...
+            min(matData2(:)),max(matData2(:)),...
+            mean(matData2(:)),std(matData2(:)))
+        
+        fprintf('Diff\tMin\tMax\tMean\tStd\n');
+        fprintf('\t%1.4e,%1.4e,%1.4e,%1.4e\n',...
+            min(abs(matData1(:)-matData2(:))),max(abs(matData1(:)-matData2(:))),...
+            mean(abs(matData1(:)-matData2(:))),std(abs(matData1(:)-matData2(:))))
+        
     end
     function cAxisCallback( objectHandle , eventData )
         styles = get(objectHandle,'String');

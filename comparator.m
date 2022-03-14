@@ -5,10 +5,15 @@ function varargout = comparator(varargin)
 % comparator(matData1, matData2, funcHandle, renderHandle)
 % cb = comparator(...)
 % cb is a struct of callbacks for programmatic setting definitions
-%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes
-%       respectively
+%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes respectively
+%   cb.setLatAxis(lat)  lateral axis
+%   cb.setAxAxis(ax)    axial axis
+%   cb.setFrmAxis(frm)  frame axis
+%   cb.setDirection('Vertical')  {'Horizontal','Normal'}
 %   cb.setFrameFormat(func) set the formatting of `f` placeholder 
 %       (i.e. func = @(x) sprintf('%1.2f',x));
+%   cb.setCoordinate(row,col,slice)
+%   cb.exportGif(filename,[delay])
 %   cb.setLabel(y,x,leftTitle,rightTitle) sets the figure labels
 
 %% Initialization
@@ -264,6 +269,9 @@ titleRender = @(x) sprintf('%1.2f',x);
 
 %% Struct for external callbacks for programmatic access
 extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
+extCallbacks.setLatAxis = @(lat) setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis});
+extCallbacks.setAxAxis = @(ax) setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
+extCallbacks.setFrmAxis = @(frm) setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
 extCallbacks.setFrameFormat = @setFrameFormat;
 extCallbacks.setLabel = @setLabel;
 extCallbacks.setDirection = @setDirection;
@@ -276,6 +284,7 @@ extCallbacks.Img1 = hImg1;
 extCallbacks.Img2 = hImg2;
 extCallbacks.ax1 = hImageAxes1;
 extCallbacks.ax2 = hImageAxes2;
+extCallbacks.ImgAxes = [hImageAxes1 hImageAxes2 hUnderlayAxes1 hUnderlayAxes2];
 extCallbacks.lineAxes = hLineAxes;
 
 %% Start GUI

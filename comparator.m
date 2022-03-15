@@ -99,12 +99,14 @@ hMainFigure = figure('Name','Comparator',...
     );%,'Visible','off');
 
 % Generate Underlay axes
-hUnderlayAxes1 = subplot(2,2,[1],'parent',hMainFigure);
+% hUnderlayAxes1 = subplot(2,2,[1],'parent',hMainFigure);
+hUnderlayAxes1 = subplot(5,2,[1 3 5],'parent',hMainFigure);
 set(hUnderlayAxes1,'Tag','hUnderlayAxes1');
 blue = zeros([size(matData1,1),size(matData1,2),3]); blue(:,:,3) =1;
 hUnderlayImg1 = image(latAxis,axAxis,blue);
 
-hUnderlayAxes2 = subplot(2,2,1+[1],'parent',hMainFigure);
+% hUnderlayAxes2 = subplot(2,2,1+[1],'parent',hMainFigure);
+hUnderlayAxes2 = subplot(5,2,1+[1 3 5],'parent',hMainFigure);
 set(hUnderlayAxes2,'Tag','hUnderlayAxes2');
 red = zeros([size(matData2,1),size(matData2,2),3]); red(:,:,1) =1;
 hUnderlayImg2 = image(latAxis,axAxis,red);
@@ -125,7 +127,8 @@ hl2 = linkprop([hImageAxes2,hUnderlayAxes2],{'Position'} );
 % subplot clobbers axes, so set the position manually
 
 figure(hMainFigure); % Needed for programatic interface.  Spawns separate figure otherwise.
-hLineAxes = subplot(2,2,[3 4]);%axes('Position',[0.13 0.11 0.775 0.15]);
+% hLineAxes = subplot(2,2,[3 4]);%axes('Position',[0.13 0.11 0.775 0.15]);
+hLineAxes = subplot(5,2,[7:10]);%axes('Position',[0.13 0.11 0.775 0.15]);
 hLineAxes.Tag = 'hLineAxes';
 grid(hLineAxes,'on');
 
@@ -262,16 +265,20 @@ hLine1 = plot(1:size(matData1,1),lineData); hold on;
 hLine2 = plot(1:size(matData1,1),evalFunc(matData2(:,lineNumber,sliceNumber)),'r');
 grid on;
 
-hLegend = legend(hLeftTitle.String, hRightTitle.String);
-
+fmt = @(s) strrep(s,'`f`',''); % Not intentionally shared
+hLegend = legend(fmt(hLeftTitle.String), fmt(hRightTitle.String));
+clear fmt;
 % Function for updating `f` in title string
-titleRender = @(x) sprintf('%1.2f',x);
+frameFmt='%1.1f';
+titleRender = @(x) sprintf(frameFmt,x);
 
 %% Struct for external callbacks for programmatic access
 extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
-extCallbacks.setLatAxis = @(lat) setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis});
-extCallbacks.setAxAxis = @(ax) setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
-extCallbacks.setFrmAxis = @(frm) setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
+% Below doesn't work, because it fixes external values into the callback
+% extCallbacks.setLatAxis = @(lat) setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis});
+extCallbacks.setLatAxis = @setLatAxis;
+extCallbacks.setAxAxis = @setAxAxis;
+extCallbacks.setFrmAxis = @setFrmAxis;
 extCallbacks.setFrameFormat = @setFrameFormat;
 extCallbacks.setLabel = @setLabel;
 extCallbacks.setDirection = @setDirection;
@@ -412,7 +419,8 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             xlabel(hImageAxes2,xLabel);
             hLeftTitle.UserData = leftTitle;
             hRightTitle.UserData = rightTitle;
-            hLegend.String(1:2) = {hLeftTitle.UserData,hRightTitle.UserData};
+            fmt = @(s) strrep(s,'`f`',''); % Not intentionally shared
+            hLegend.String(1:2) = {fmt(hLeftTitle.UserData),fmt(hRightTitle.UserData)};
             updatePlots();
         catch
             warning('Error processing data. Reverting...')
@@ -531,7 +539,17 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             LabelCallback(hObject,eventData);
         end
     end
-
+    
+    function setLatAxis(lat)
+        setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis})
+    end
+    
+    function setAxAxis(ax)
+        setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
+    end
+    function setFrmAxis(frm)
+        setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
+    end
     function compStats_callback(hObj, evnt)
         warning('Work in Progress');
         fprintf('Left\tMin\tMax\tMean\tStd\n')

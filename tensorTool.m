@@ -5,10 +5,15 @@ function varargout = tensorTool(varargin)
 % tensorTool(matData, funcHandle, renderHandle)
 % cb = tensorTool(...)
 % cb is a struct of callbacks for programmatic setting definitions
-%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes
-%       respectively
+%   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes respectively
+%   cb.setLatAxis(lat)  lateral axis
+%   cb.setAxAxis(ax)    axial axis
+%   cb.setFrmAxis(frm)  frame axis
+%   cb.setDirection('Vertical')  {'Horizontal','Normal'}
 %   cb.setFrameFormat(func) set the formatting of `f` placeholder 
 %       (i.e. func = @(x) sprintf('%1.2f',x));
+%   cb.setCoordinate(row,col,slice)
+%   cb.exportGif(filename,[delay])
 %   cb.setLabel(y,x,leftTitle,rightTitle) sets the figure labels
 %
 % See also comparator
@@ -201,10 +206,16 @@ grid on;
 fLineUpdate = 1;
 
 % Function for updating `f` in title string
-titleRender = @(x) sprintf('%1.2f',x);
+frameFmt='%1.1f';
+titleRender = @(x) sprintf(frameFmt,x);
 
 %% Struct for external callbacks for programmatic access
 extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
+% Below doesn't work, because it fixes external values into the callback
+% extCallbacks.setLatAxis = @(lat) setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis});
+extCallbacks.setLatAxis = @setLatAxis;
+extCallbacks.setAxAxis = @setAxAxis;
+extCallbacks.setFrmAxis = @setFrmAxis;
 extCallbacks.setFrameFormat = @setFrameFormat;
 extCallbacks.setLabel = @setLabel;
 extCallbacks.setDirection = @setDirection;
@@ -214,7 +225,7 @@ extCallbacks.exportGif = @exportGif;
 extCallbacks.Img = hImg;
 extCallbacks.ax = hImageAxes;
 extCallbacks.lineAxes = hLineAxes;
-extCallbacks.titleRender = titleRender;
+extCallbacks.ImgAxes = [hImageAxes hUnderlayAxes];
 
 %% Start GUI
 updatePlots;
@@ -338,7 +349,18 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             updatePlots();
             throw(exc)
         end
+    end
+
+    function setLatAxis(lat)
+        setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis})
         
+    end
+    
+    function setAxAxis(ax)
+        setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
+    end
+    function setFrmAxis(frm)
+        setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
     end
 
     function setAxes_callback(hObject, eventData, resp)

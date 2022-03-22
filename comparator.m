@@ -430,6 +430,18 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         end
     end
 
+    function setLatAxis(lat)
+        setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis})
+        
+    end
+    
+    function setAxAxis(ax)
+        setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
+    end
+    function setFrmAxis(frm)
+        setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
+    end
+
     function setAxes_callback(hObject, eventData, resp)
         % (hObject, eventData) is for standard gui access
         % (hObject, eventData, resp) is for programmatic access (eventData is empty)
@@ -540,16 +552,33 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         end
     end
     
-    function setLatAxis(lat)
-        setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis})
+    function updateAxes(latNew,axNew,latOld,axOld)
+        % Rederive limits on old axes
+        % Image toolbox likes half pixel edges
+        yLim=ylim(hImageAxes1)-diff(axOld(1:2))*[-0.5 0.5];
+        xLim=xlim(hImageAxes1)-diff(latOld(1:2))*[-0.5 0.5];
+        [~,yLim(1)] = findClosest(axOld,yLim(1));
+        [~,yLim(2)] = findClosest(axOld,yLim(2));
+        [~,xLim(1)] = findClosest(latOld,xLim(1));
+        [~,xLim(2)] = findClosest(latOld,xLim(2));
+        yLim = axAxis(yLim)+diff(axAxis(1:2))*0.5*[-1 1];
+        xLim = latAxis(xLim)+diff(latAxis(1:2))*0.5*[-1 1];
+        
+        % Update handles
+        set([hImg1,hImg2]...,'CData',renderFunc(matData(:,:,sliceNumber))...
+            ,'YData',axAxis...
+            ,'XData',latAxis...
+        );
+        set([hUnderlayImg1 hUnderlayImg2],'YData',axAxis,'XData',latAxis);
+        xlim(hImageAxes1,xLim); ylim(hImageAxes1,yLim);
+        xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
+        
+        updatePlots;
+        if updateLabels
+            LabelCallback(hObject,eventData);
+        end
     end
-    
-    function setAxAxis(ax)
-        setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
-    end
-    function setFrmAxis(frm)
-        setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
-    end
+
     function compStats_callback(hObj, evnt)
         warning('Work in Progress');
         fprintf('Left\tMin\tMax\tMean\tStd\n')

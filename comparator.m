@@ -602,7 +602,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         style = styles{get(objectHandle, 'Value')};
         setCaxisStyle(style);
     end
-    function setCaxisStyle(s,clim1,clim2)
+    function setCaxisStyle(s,clim1,clim2,titleStr)
         styles = get(cAxisPopUp,'String');
         if isequal(class(s),'char') || isequal(class(s),'string')
             % Set via String
@@ -645,8 +645,17 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                         if nargin==2
                             clim2 = clim1;
                         end
+
                         caxis(hImageAxes1,clim1)
                         caxis(hImageAxes2,clim2)
+                        if nargin==4
+                            if ischar(titleStr) || isstring(titleStr)
+                                title(colorbar(hImageAxes1),titleStr);
+                                title(colorbar(hImageAxes2),titleStr);
+                            else
+                                warning('Invalid titleStr');
+                            end
+                        end
                         updateCaxis();
                     end
                 catch

@@ -359,6 +359,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
     function setAxAxis(ax)
         setAxes_callback(setAxesButton,[],{latAxis;ax;frameAxis});
     end
+
     function setFrmAxis(frm)
         setAxes_callback(setAxesButton,[],{latAxis;axAxis;frm});
     end
@@ -632,7 +633,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
 %                    set(hLine,'YData',double(lineData),'XData',axAxis);
 %                end
                 set(hLine,'XData',axAxis,...
-                    'YData', evalFunc(matData(:,lineNumber,sliceNumber)));
+                    'YData', single(evalFunc(matData(:,lineNumber,sliceNumber))));
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(axAxis,hPointer(2));

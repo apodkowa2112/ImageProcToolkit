@@ -20,10 +20,10 @@ assert(size(buffer,1)>=endSample,...
 
 %% Trim excess samples from buffer
 lastValid = floor(size(buffer,1)/endSample)*endSample;
-buffer = buffer(1:lastValid,:);
+buffer = buffer(1:lastValid,:,:);
 
 %% Reshape buffer to sane dimensions
-buffer = reshape(buffer,endSample,[],size(buffer,2));
-out = permute(buffer,[1 3 2]);
+buffer = reshape(buffer,endSample,[],size(buffer,2),size(buffer,3));
+out = permute(buffer,[1 3 2 4]);
 
 end

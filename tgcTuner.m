@@ -92,6 +92,7 @@ view(90,90);
 title('TGC')
 xlim([1 length(handles.tgc)])
 xticks(linspace(1,length(handles.tgc),6));
+yticks(dynamicRange(1):20:dynamicRange(2));
 
 handles.hImg = imagesc(handles.imgAxes,handles.data);
 colormap gray;

@@ -193,7 +193,7 @@ hColorbar = colorbar;
 colorbar_title = '';
 title(hColorbar,colorbar_title);
 set(hImg,'ButtonDownFcn',@ImageClickCallback);
-set(hImg,'Interpolation','bilinear');
+% set(hImg,'Interpolation','bilinear'); % I don't like this as a default
 set(hImageAxes,'Color','none');
 hTitle = title('Data'); hTitle.UserData = hTitle.String;
 set(hTitle,'ButtonDownFcn',@LabelCallback);
@@ -618,11 +618,17 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
         set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
+
+        deleteLines = @(ax) delete(findobj(ax,'Type','ConstantLine'));
+        addXLine = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
+        addYLine = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(latAxis,hPointer(1));
-                mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
-                hImg.AlphaData = mask;
+                % mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
+                % hImg.AlphaData = mask;
+                deleteLines(hImageAxes)
+                addXLine(hImageAxes,latAxis(lineNumber),'g')
 %                axes(hLineAxes)
 %                lineData = evalFunc(matData(:,lineNumber,sliceNumber));
 %                if fLineUpdate
@@ -637,8 +643,10 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 
             case 'Horizontal'
                 [~,lineNumber] = findClosest(axAxis,hPointer(2));
-                mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
-                hImg.AlphaData = mask;
+                % mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
+                % hImg.AlphaData = mask;
+                deleteLines(hImageAxes)
+                addYLine(hImageAxes,axAxis(lineNumber),'g')
                 axes(hLineAxes)
 %                lineData = evalFunc(matData(lineNumber,:,sliceNumber));
 %                if fLineUpdate
@@ -655,10 +663,12 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
                 [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
                 lineNumber = 0;
-                mask = ones(size(matData(:,:,1))); 
-                mask(:,ind(1))=0; mask(ind(2),:) = 0;
-                
-                hImg.AlphaData = mask;
+                % mask = ones(size(matData(:,:,1))); 
+                % mask(:,ind(1))=0; mask(ind(2),:) = 0;
+                % hImg.AlphaData = mask;
+                deleteLines(hImageAxes)
+                addXLine(hImageAxes,latAxis(ind(1)),'g')
+                addYLine(hImageAxes,latAxis(ind(2)),'g')
 %                axes(hLineAxes)
 %                lineData = evalFunc(squeeze(matData(ind(2),ind(1),:)));
 %                hLine = plot(frameAxis,lineData);

@@ -748,9 +748,6 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             ...,'YData',axAxis...
             ...,'XData',latAxis...
         );
-        %set([hUnderlayImg1 hUnderlayImg2],'YData',axAxis,'XData',latAxis);
-        %xlim(hImageAxes1,xLim); ylim(hImageAxes1,yLim);
-        %xlim(hImageAxes2,xLim); ylim(hImageAxes2,yLim);
         
         updateCaxis();
         %% calculate axes
@@ -765,12 +762,20 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
         set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
+
+        deleteLines = @(ax) delete(findobj(ax,'Type','ConstantLine'));
+        addXLine = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
+        addYLine = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(latAxis,hPointer(1));
-                mask = ones(size(matData1(:,:,1))); mask(:,lineNumber)=0;
-                hImg1.AlphaData = mask;
-                hImg2.AlphaData = mask;
+                % mask = ones(size(matData1(:,:,1))); mask(:,lineNumber)=0;
+                % hImg1.AlphaData = mask;
+                % hImg2.AlphaData = mask;
+                
+                deleteLines([hImageAxes1 hImageAxes2])
+                addXLine(hImageAxes1,latAxis(lineNumber),'b')
+                addXLine(hImageAxes2,latAxis(lineNumber),'r')
 %                 axes(hLineAxes)
 %                 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
 %                 plot(yAxis,lineData);
@@ -781,9 +786,12 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                     'YData', evalFunc(matData2(:,lineNumber,sliceNumber)));
             case 'Horizontal'
                 [~,lineNumber] = findClosest(axAxis,hPointer(2));
-                mask = ones(size(matData1(:,:,1))); mask(lineNumber,:)=0;
-                hImg1.AlphaData = mask;
-                hImg2.AlphaData = mask;
+                % mask = ones(size(matData1(:,:,1))); %mask(lineNumber,:)=0;
+                % hImg1.AlphaData = mask;
+                % hImg2.AlphaData = mask;
+                deleteLines([hImageAxes1 hImageAxes2])
+                addYLine(hImageAxes1,axAxis(lineNumber),'b')
+                addYLine(hImageAxes2,axAxis(lineNumber),'r')
 %                 axes(hLineAxes)
 %                 lineData = evalFunc(matData1(lineNumber,:,sliceNumber));
 %                 plot(xAxis,lineData);
@@ -797,9 +805,13 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
                 [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
                 lineNumber = 0;
-                mask = ones(size(matData1(:,:,1))); 
-                mask(:,ind(1))=0; mask(ind(2),:) = 0;
-                
+                % mask = ones(size(matData1(:,:,1))); 
+                % mask(:,ind(1))=0; mask(ind(2),:) = 0;
+                deleteLines([hImageAxes1 hImageAxes2])
+                addXLine(hImageAxes1,latAxis(ind(1)),'b')
+                addXLine(hImageAxes2,latAxis(ind(1)),'r')
+                addYLine(hImageAxes1,axAxis(ind(2)),'b')
+                addYLine(hImageAxes2,axAxis(ind(2)),'r')
                 hImg1.AlphaData = mask;
                 hImg2.AlphaData = mask;
 %                 axes(hLineAxes)

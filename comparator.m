@@ -807,13 +807,14 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 lineNumber = 0;
                 % mask = ones(size(matData1(:,:,1))); 
                 % mask(:,ind(1))=0; mask(ind(2),:) = 0;
+                % hImg1.AlphaData = mask;
+                % hImg2.AlphaData = mask;
                 deleteLines([hImageAxes1 hImageAxes2])
                 addXLine(hImageAxes1,latAxis(ind(1)),'b')
                 addXLine(hImageAxes2,latAxis(ind(1)),'r')
                 addYLine(hImageAxes1,axAxis(ind(2)),'b')
                 addYLine(hImageAxes2,axAxis(ind(2)),'r')
-                hImg1.AlphaData = mask;
-                hImg2.AlphaData = mask;
+
 %                 axes(hLineAxes)
 %                 lineData = evalFunc(squeeze(matData1(ind(2),ind(1),:)));
 %                 hLine = plot(frameAxis,lineData);

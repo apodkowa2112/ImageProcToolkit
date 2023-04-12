@@ -1,8 +1,8 @@
 function varargout = comparator(varargin)
 % COMPARATOR Compare 2 3D matrices
-% comparator(matData1, matData2)
-% comparator(matData1, matData2, funcHandle)
-% comparator(matData1, matData2, funcHandle, renderHandle)
+% comparator(matData1, matData2) Compares two matrices
+% comparator(matData1, matData2, renderFunc) applies renderFunc to the images
+% comparator(matData1, matData2, renderFunc, evalFunc) applies evalFunc to the traces.
 % cb = comparator(...)
 % cb is a struct of callbacks for programmatic setting definitions
 %   cb.setAxes(lat,ax,frame) sets the lateral, axial and frame axes respectively
@@ -15,6 +15,7 @@ function varargout = comparator(varargin)
 %   cb.setCoordinate(row,col,slice)
 %   cb.exportGif(filename,[delay])
 %   cb.setLabel(y,x,leftTitle,rightTitle) sets the figure labels
+% See also tensorTool
 
 %% Initialization
 switch length(varargin)
@@ -276,23 +277,23 @@ titleRender = @(x) sprintf(frameFmt,x);
 extCallbacks.setAxes = @(lat,ax,frame) setAxes_callback(setAxesButton,[],{lat;ax;frame});
 % Below doesn't work, because it fixes external values into the callback
 % extCallbacks.setLatAxis = @(lat) setAxes_callback(setAxesButton,[],{lat;axAxis;frameAxis});
-extCallbacks.setLatAxis = @setLatAxis;
-extCallbacks.setAxAxis = @setAxAxis;
-extCallbacks.setFrmAxis = @setFrmAxis;
+extCallbacks.setLatAxis     = @setLatAxis;
+extCallbacks.setAxAxis      = @setAxAxis;
+extCallbacks.setFrmAxis     = @setFrmAxis;
 extCallbacks.setFrameFormat = @setFrameFormat;
-extCallbacks.setLabel = @setLabel;
-extCallbacks.setDirection = @setDirection;
-extCallbacks.setCoordinate = @setCoordinate;
-extCallbacks.setCaxisStyle = @setCaxisStyle;
-extCallbacks.exportGif = @exportGif;
-extCallbacks.updatePlots = @updatePlots;
-extCallbacks.legend = hLegend;
-extCallbacks.Img1 = hImg1;
-extCallbacks.Img2 = hImg2;
-extCallbacks.ax1 = hImageAxes1;
-extCallbacks.ax2 = hImageAxes2;
-extCallbacks.ImgAxes = [hImageAxes1 hImageAxes2 hUnderlayAxes1 hUnderlayAxes2];
-extCallbacks.lineAxes = hLineAxes;
+extCallbacks.setLabel       = @setLabel;
+extCallbacks.setDirection   = @setDirection;
+extCallbacks.setCoordinate  = @setCoordinate;
+extCallbacks.setCaxisStyle  = @setCaxisStyle;
+extCallbacks.exportGif      = @exportGif;
+extCallbacks.updatePlots    = @updatePlots;
+extCallbacks.legend         = hLegend;
+extCallbacks.Img1           = hImg1;
+extCallbacks.Img2           = hImg2;
+extCallbacks.ax1            = hImageAxes1;
+extCallbacks.ax2            = hImageAxes2;
+extCallbacks.ImgAxes        = [hImageAxes1 hImageAxes2 hUnderlayAxes1 hUnderlayAxes2];
+extCallbacks.lineAxes       = hLineAxes;
 
 %% Start GUI
 updatePlots;
@@ -750,22 +751,15 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         );
         
         updateCaxis();
-        %% calculate axes
-        %[xData, yData, cData1] = getimage(hImageAxes1);
-        %[xData, yData, cData2] = getimage(hImageAxes2);
-        %dx = diff(xData)/(size(cData1,2)-1);
-        %dy = diff(yData)/(size(cData1,1)-1);
-        %xAxis = xData(1):dx:xData(2);
-        %yAxis = yData(1):dy:yData(2);
-        %assert(isequal(length(latAxis),size(cData1,2)),'Error: Bad xAxis length');
-        %assert(isequal(length(axAxis),size(cData1,1)),'Error: Bad yAxis length');
+
+        %% Update pointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
         set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
 
         deleteLines = @(ax) delete(findobj(ax,'Type','ConstantLine'));
-        addXLine = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
-        addYLine = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
+        addXLine    = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
+        addYLine    = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(latAxis,hPointer(1));
@@ -773,13 +767,10 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 % hImg1.AlphaData = mask;
                 % hImg2.AlphaData = mask;
                 
-                deleteLines([hImageAxes1 hImageAxes2])
-                addXLine(hImageAxes1,latAxis(lineNumber),'b')
-                addXLine(hImageAxes2,latAxis(lineNumber),'r')
-%                 axes(hLineAxes)
-%                 lineData = evalFunc(matData1(:,lineNumber,sliceNumber));
-%                 plot(yAxis,lineData);
-%                 grid on;
+                deleteLines([hImageAxes1 hImageAxes2]);
+                addXLine(hImageAxes1,latAxis(lineNumber),'b');
+                addXLine(hImageAxes2,latAxis(lineNumber),'r');
+
                 set(hLine1,'XData',axAxis,...
                     'YData', evalFunc(matData1(:,lineNumber,sliceNumber)));
                 set(hLine2,'XData',axAxis,...
@@ -790,12 +781,10 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 % hImg1.AlphaData = mask;
                 % hImg2.AlphaData = mask;
                 deleteLines([hImageAxes1 hImageAxes2])
-                addYLine(hImageAxes1,axAxis(lineNumber),'b')
-                addYLine(hImageAxes2,axAxis(lineNumber),'r')
-%                 axes(hLineAxes)
-%                 lineData = evalFunc(matData1(lineNumber,:,sliceNumber));
-%                 plot(xAxis,lineData);
-%                 grid on;
+                addYLine(hImageAxes1,axAxis(lineNumber),'b');
+                addYLine(hImageAxes2,axAxis(lineNumber),'r');
+
+                % Update Line plot
                 set(hLine1,'XData',latAxis,...
                     'YData', evalFunc(matData1(lineNumber,:,sliceNumber)));
                 set(hLine2,'XData',latAxis,...
@@ -810,18 +799,12 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
                 % hImg1.AlphaData = mask;
                 % hImg2.AlphaData = mask;
                 deleteLines([hImageAxes1 hImageAxes2])
-                addXLine(hImageAxes1,latAxis(ind(1)),'b')
-                addXLine(hImageAxes2,latAxis(ind(1)),'r')
-                addYLine(hImageAxes1,axAxis(ind(2)),'b')
-                addYLine(hImageAxes2,axAxis(ind(2)),'r')
+                addXLine(hImageAxes1,latAxis(ind(1)),'b');
+                addXLine(hImageAxes2,latAxis(ind(1)),'r');
+                addYLine(hImageAxes1,axAxis(ind(2)),'b');
+                addYLine(hImageAxes2,axAxis(ind(2)),'r');
 
-%                 axes(hLineAxes)
-%                 lineData = evalFunc(squeeze(matData1(ind(2),ind(1),:)));
-%                 hLine = plot(frameAxis,lineData);
-%                 hold on
-%                 plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
-%                 hold off
-%                 grid on;
+                % Update Line Plot
                 set(hLine1,'XData',frameAxis,...
                     'YData', evalFunc(squeeze(matData1(ind(2),ind(1),:))));
                 set(hLine2,'XData',frameAxis,...
@@ -836,7 +819,7 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
         
         % Reset Tags on figure update
         hImageAxes1.Tag = 'hImageAxes1';
-        hLineAxes.Tag =  'hLineAxes';
+        hLineAxes.Tag   = 'hLineAxes';
         
         % Update titles if necessary
         try
@@ -951,7 +934,9 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
             updatePlots;
         end
     end
-    varargout{1} = extCallbacks;
+    if nargout > 0
+        varargout{1} = extCallbacks;
+    end
 
     %% This function is dangerous.  Use at your own risk
     function setter(s)
@@ -960,6 +945,8 @@ set([hUnderlayAxes1 hUnderlayAxes2],'XTick',[],'YTick',[])
     end
 
     % Intentional obfuscation here
-    varargout{2} = @setter;
+    if nargout > 1
+        varargout{2} = @setter;
+    end
 
 end

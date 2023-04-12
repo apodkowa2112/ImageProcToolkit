@@ -605,39 +605,23 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             ...,'YData',axAxis...
             ...,'XData',latAxis...
         );
-         %set(hUnderlayImg,'YData',axAxis,'XData',latAxis);
-         %xlim(hImageAxes,xLim); ylim(hImageAxes,yLim);
         
         updateCaxis();
-        %% calculate axes
-%         [xData, yData, cData] = getimage(hImageAxes);
-%         dx = diff(xData)/(size(cData,2)-1);
-%         dy = diff(yData)/(size(cData,1)-1);
-%         assert(isequal(length(latAxis),size(cData,2)),'Error: Bad xAxis length');
-%         assert(isequal(length(axAxis),size(cData,1)),'Error: Bad yAxis length');
+        %% Update pointer
         [hPointer(1),ind(1)] = findClosest(latAxis,hPointer(1));
         [hPointer(2),ind(2)] = findClosest(axAxis,hPointer(2));
         set(coordTable,'data',[flipud(ind(:))' sliceNumber]);
 
         deleteLines = @(ax) delete(findobj(ax,'Type','ConstantLine'));
-        addXLine = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
-        addYLine = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
+        addXLine    = @(ax,val,col) xline(ax,val,col,'LineWidth',2);
+        addYLine    = @(ax,val,col) yline(ax,val,col,'LineWidth',2);
         switch lineDir
             case 'Vertical'
                 [~,lineNumber] = findClosest(latAxis,hPointer(1));
                 % mask = ones(size(matData(:,:,1))); mask(:,lineNumber)=0;
                 % hImg.AlphaData = mask;
                 deleteLines(hImageAxes)
-                addXLine(hImageAxes,latAxis(lineNumber),'g')
-%                axes(hLineAxes)
-%                lineData = evalFunc(matData(:,lineNumber,sliceNumber));
-%                if fLineUpdate
-%                    hLine = plot(axAxis,lineData);
-%                    grid on;
-%                    fLineUpdate = 0;
-%                else % cast to double to avoid bugs with logical datatypes
-%                    set(hLine,'YData',double(lineData),'XData',axAxis);
-%                end
+                addXLine(hImageAxes,latAxis(lineNumber),'g');
                 set(hLine,'XData',axAxis,...
                     'YData', single(evalFunc(matData(:,lineNumber,sliceNumber))));
                 
@@ -646,16 +630,8 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 % mask = ones(size(matData(:,:,1))); mask(lineNumber,:)=0;
                 % hImg.AlphaData = mask;
                 deleteLines(hImageAxes)
-                addYLine(hImageAxes,axAxis(lineNumber),'g')
+                addYLine(hImageAxes,axAxis(lineNumber),'g');
                 axes(hLineAxes)
-%                lineData = evalFunc(matData(lineNumber,:,sliceNumber));
-%                if fLineUpdate
-%                    hLine =  plot(latAxis,lineData);
-%                    grid on;
-%                    fLineUpdate = 0;
-%                else
-%                    set(hLine,'YData',double(lineData),'XData',latAxis);                    
-%                end
                 set(hLine,'XData',latAxis,...
                     'YData', evalFunc(matData(lineNumber,:,sliceNumber)));
                 
@@ -666,16 +642,9 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 % mask = ones(size(matData(:,:,1))); 
                 % mask(:,ind(1))=0; mask(ind(2),:) = 0;
                 % hImg.AlphaData = mask;
-                deleteLines(hImageAxes)
-                addXLine(hImageAxes,latAxis(ind(1)),'g')
-                addYLine(hImageAxes,latAxis(ind(2)),'g')
-%                axes(hLineAxes)
-%                lineData = evalFunc(squeeze(matData(ind(2),ind(1),:)));
-%                hLine = plot(frameAxis,lineData);
-%                hold on
-%                plot(frameAxis(sliceNumber),lineData(sliceNumber),'ro');
-%                hold off
-%                grid on;
+                deleteLines(hImageAxes);
+                addXLine(hImageAxes,latAxis(ind(1)),'g');
+                addYLine(hImageAxes,latAxis(ind(2)),'g');
                 set(hLine,'XData',frameAxis,...
                     'YData', evalFunc(squeeze(matData(ind(2),ind(1),:))));
             
@@ -683,9 +652,9 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 error('Error: Invalid lineDir (%s)',lineDir');
         end
         
-        % Reset Tags on figure update
+        %% Reset Tags on figure update
         hImageAxes.Tag = 'hImageAxes';
-        hLineAxes.Tag =  'hLineAxes';
+        hLineAxes.Tag  = 'hLineAxes';
         axes(hImageAxes); % for easy caxis
         % Update titles if necessary
         try
@@ -782,7 +751,9 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
             updatePlots;
         end
     end
-    varargout{1} = extCallbacks;
+    if nargout > 0
+        varargout{1} = extCallbacks;
+    end
 
     %% This function is dangerous.  Use at your own risk
     function setter(s)
@@ -791,6 +762,8 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
     end
 
     % Intentional obfuscation here
-    varargout{2} = @setter;
+    if nargout > 1
+        varargout{2} = @setter;
+    end
 
 end

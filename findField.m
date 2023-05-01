@@ -44,7 +44,17 @@ function outString = buildArr(InStruct,inName)
     % inName    = string(inName); % Removed for efficiency reasons
     fieldArr  = string(fieldnames(InStruct));
     outString = []; % Will be converted to string class below
-    
+    if length(InStruct)>1
+        % Get size of struct
+        sz = size(InStruct);
+        szStr = "(";
+        for i = 1:length(sz)
+            szStr = szStr + sz(i) + ",";
+        end
+        szStr = strip(szStr,",") + ")"; % Remove trailing comma
+        inName = inName + szStr; 
+        InStruct = InStruct(1); % Don't need every struct.
+    end
     %% Main loop
     for f=1:length(fieldArr)
         field    = fieldArr(f);

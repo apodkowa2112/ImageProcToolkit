@@ -644,7 +644,7 @@ set(hUnderlayAxes,'XTick',[],'YTick',[])
                 % hImg.AlphaData = mask;
                 deleteLines(hImageAxes);
                 addXLine(hImageAxes,latAxis(ind(1)),'g');
-                addYLine(hImageAxes,latAxis(ind(2)),'g');
+                addYLine(hImageAxes,axAxis(ind(2)),'g');
                 set(hLine,'XData',frameAxis,...
                     'YData', evalFunc(squeeze(matData(ind(2),ind(1),:))));
             
